@@ -23,43 +23,69 @@
     .row{ display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
     .toggled{ background:#111 !important; color:#fff !important; }
     .btn{ padding:6px 10px; border-radius:8px; border:1px solid rgba(0,0,0,.15); background:#fff; cursor:pointer; font:12px/1 system-ui; }
+    .unwrap-btn{ 
+      position:absolute; 
+      left:50%; 
+      top:70%; 
+      transform:translateX(-50%); 
+      background:linear-gradient(135deg, #FFD700 0%, #FFA500 100%); 
+      color:#000; 
+      border:none; 
+      padding:15px 30px; 
+      border-radius:25px; 
+      font-family:'Krona One',sans-serif; 
+      font-size:1.2rem; 
+      font-weight:bold; 
+      cursor:pointer; 
+      transition:all 0.3s ease; 
+      box-shadow:0 6px 20px rgba(255,215,0,0.4); 
+      z-index:1000;
+    }
+    .unwrap-btn:hover{ 
+      transform:translateX(-50%) translateY(-3px); 
+      box-shadow:0 8px 25px rgba(255,215,0,0.6); 
+    }
+    .unwrap-btn:active{ 
+      transform:translateX(-50%) translateY(0); 
+    }
   </style>
 </head>
 <body>
-  <div id="stage">
-    <canvas id="c"></canvas>
-    <div class="hud collapsed" id="hud">
-      <div class="hud-header">
-        <span><b>Rip</b>: left‑drag to tug · <span class="kbd">Right‑drag</span> to cut · <span class="kbd">R</span> to reset</span>
-        <button id="toggle-hud" class="btn-toggle">+</button>
+      <div id="stage">
+      <canvas id="c"></canvas>
+      <div class="hud collapsed" id="hud">
+        <div class="hud-header">
+          <span><b>Rip</b>: left‑drag to tug · <span class="kbd">Right‑drag</span> to cut · <span class="kbd">R</span> to reset</span>
+          <button id="toggle-hud" class="btn-toggle">+</button>
+        </div>
+        <div class="hud-content">
+          <label>Line thickness <input id="thick" type="range" min="0.6" max="2.2" step="0.05" value="1.15"></label>
+          <label>Brush size <input id="brush" type="range" min="5" max="40" value="20"></label>
+          <label>Eraser size <input id="eraser" type="range" min="6" max="80" value="26"></label>
+          <label>Tear distance <input id="tear" type="range" min="10" max="80" value="40"></label>
+          <label>Gravity <input id="grav" type="range" min="100" max="1200" step="50" value="300"></label>
+          <label>Pattern <select id="pattern">
+            <option value="random">Random</option>
+            <option value="checkerboard">Checkerboard</option>
+            <option value="polka-dots">Polka Dots</option>
+            <option value="stripes">Stripes</option>
+            <option value="squares">Squares</option>
+            <option value="circles">Circles</option>
+            <option value="zigzag">Zigzag</option>
+            <option value="diamonds">Diamonds</option>
+            <option value="stars">Stars</option>
+          </select></label>
+          <div class="row">
+            <button id="toggle-eraser" class="btn">Eraser (E)</button>
+            <button id="reset-thick" class="btn">Reset thickness</button>
+            <button id="reset" class="btn">Reset (R)</button>
+            <button id="save" class="btn">Export PNG (⌘/Ctrl+S)</button>
+          </div>
+          <div id="quip" class="quip"></div>
+        </div>
       </div>
-      <div class="hud-content">
-        <label>Line thickness <input id="thick" type="range" min="0.6" max="2.2" step="0.05" value="1.15"></label>
-        <label>Brush size <input id="brush" type="range" min="5" max="40" value="20"></label>
-        <label>Eraser size <input id="eraser" type="range" min="6" max="80" value="26"></label>
-        <label>Tear distance <input id="tear" type="range" min="10" max="80" value="40"></label>
-              <label>Gravity <input id="grav" type="range" min="100" max="1200" step="50" value="300"></label>
-      <label>Pattern <select id="pattern">
-        <option value="random">Random</option>
-        <option value="checkerboard">Checkerboard</option>
-        <option value="polka-dots">Polka Dots</option>
-        <option value="stripes">Stripes</option>
-        <option value="squares">Squares</option>
-        <option value="circles">Circles</option>
-        <option value="zigzag">Zigzag</option>
-        <option value="diamonds">Diamonds</option>
-        <option value="stars">Stars</option>
-      </select></label>
-      <div class="row">
-        <button id="toggle-eraser" class="btn">Eraser (E)</button>
-        <button id="reset-thick" class="btn">Reset thickness</button>
-        <button id="reset" class="btn">Reset (R)</button>
-        <button id="save" class="btn">Export PNG (⌘/Ctrl+S)</button>
-      </div>
-        <div id="quip" class="quip"></div>
-      </div>
+      <button id="unwrap-button" class="unwrap-btn" style="display: none;">Unwrap a new present</button>
     </div>
-  </div>
 
 <script>
 // ====== Krona One poster background ======
@@ -79,7 +105,7 @@ const hiddenPresents = [
   'Free dust', 'Half a stapler', '2% battery', 'Empty box', 'Parking ticket',
   'One unread email', 'Used chewing gum', 'Random USB cable', 'Mystery key (to nothing)',
   '"World\'s Okayest" sticker', 'Free trial (already expired)', 'Lonely sock',
-  'Excel spreadsheet', 'Pocket lint', 'Free advice (unwanted)', 'Monday morning',
+  'Excel spreadsheet', 'Pocket lint', 'Free advice (unwanted)', 'Monday morning', 'Tariffs',
   
   // Weird / Experiential Mix
   'A nap in public', 'Karaoke with strangers', '10 minutes of fame', 'All-you-can-scroll WiFi',
@@ -196,8 +222,8 @@ const physics_accuracy = 3;
 let mouse_influence = 20;
 let mouse_cut = 10;
 let gravity = 300; // Reduced gravity for more gentle fabric movement
-const cloth_height = 36;
-const cloth_width  = 60;
+let cloth_height = 36;
+let cloth_width  = 60;
 let start_y = 0;
 let spacing = 9;
 let tear_distance = 40;
@@ -257,7 +283,8 @@ class Constraint{
 }
 class Cloth{
   constructor(){
-    this.points=[]; const start_x = canvas.width/2 - cloth_width*spacing/2; 
+    this.points=[]; 
+    const start_x = 0; // Start from left edge for full coverage
     for(let y=0;y<=cloth_height;y++){
       for(let x=0;x<=cloth_width;x++){
         const p=new Point(start_x+x*spacing,start_y+y*spacing);
@@ -284,11 +311,18 @@ function initCloth(){
   tear_distance = Number(ui.tear.value);
   mouse_influence = Number(ui.brush.value);
   boundsx = canvas.width-1; boundsy = canvas.height-1;
-  // spacing to cover whole canvas
-  const spacingW = Math.max(6, Math.floor(canvas.width / cloth_width));
-  const spacingH = Math.max(6, Math.floor(canvas.height / (cloth_height+2)));
-  spacing = Math.min(spacingW, spacingH);
-  start_y = Math.max(0, Math.floor((canvas.height - spacing*cloth_height)*0.02));
+  
+  // Calculate responsive grid dimensions to always cover the full canvas
+  const targetSpacing = Math.max(4, Math.min(8, Math.min(canvas.width, canvas.height) / 100)); // Adaptive spacing
+  const responsiveWidth = Math.ceil(canvas.width / targetSpacing);
+  const responsiveHeight = Math.ceil(canvas.height / targetSpacing);
+  
+  // Update cloth dimensions dynamically
+  cloth_width = responsiveWidth;
+  cloth_height = responsiveHeight;
+  spacing = targetSpacing;
+  start_y = 0; // Always start from top
+  
   cloth = new Cloth();
   setQuip();
 }
@@ -322,6 +356,9 @@ function draw(){
     e.stroke(baseStroke); 
   }
   ctx.restore();
+  
+  // Check if sentence is fully visible and show/hide unwrap button
+  checkSentenceVisibility();
 }
 
 function update(){
@@ -359,6 +396,11 @@ window.addEventListener('keydown',e=>{
   if(e.key.toLowerCase()==='h'){ toggleHud(); }
   if(e.key.toLowerCase()==='r'){ initCloth(); } 
   if((e.key.toLowerCase()==='s')&&(e.metaKey||e.ctrlKey)){ e.preventDefault(); exportPNG(); } 
+});
+
+// Add unwrap button event listener
+document.getElementById('unwrap-button').addEventListener('click', () => {
+  initCloth();
 });
 
 function exportPNG(){ const a=document.createElement('a'); a.download=`cloth-rip-${Date.now()}.png`; a.href=canvas.toDataURL('image/png'); a.click(); }
@@ -418,6 +460,27 @@ function getPatternColor(edge, pattern, baseStroke) {
       
     default:
       return '#F03B2C';
+  }
+}
+
+function checkSentenceVisibility() {
+  const unwrapButton = document.getElementById('unwrap-button');
+  
+  // Check if there are enough torn areas to see the sentence
+  let tornEdges = 0;
+  let totalEdges = 0;
+  
+  for(const e of cloth.edges) {
+    totalEdges++;
+    if(!e.active) tornEdges++;
+  }
+  
+  // Show button if more than 30% of fabric is torn
+  const tearPercentage = tornEdges / totalEdges;
+  if(tearPercentage > 0.3) {
+    unwrapButton.style.display = 'block';
+  } else {
+    unwrapButton.style.display = 'none';
   }
 }
 
