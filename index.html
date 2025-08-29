@@ -325,10 +325,18 @@ function initCloth(){
   setQuip();
 }
 
+// Gift package patterns
+const patterns = [
+  'checkerboard', 'polka-dots', 'stripes', 'squares', 'circles', 'zigzag', 'diamonds', 'stars'
+];
+
 // ====== Rendering ======
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.drawImage(poster,0,0,canvas.width,canvas.height);
+
+  // Safety check: only draw if cloth is ready
+  if(!cloth || !cloth.points || cloth.points.length === 0 || !cloth.edges) return;
 
   // Fabric drawn as thick strokes for intact edges
   const baseStroke = spacing * Number(ui.thick.value);
@@ -337,11 +345,6 @@ function draw(){
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   
-  // Gift package patterns
-  const patterns = [
-    'checkerboard', 'polka-dots', 'stripes', 'squares', 'circles', 'zigzag', 'diamonds', 'stars'
-  ];
-  
   // Get user's pattern choice or random (only once per cloth creation)
   if (!cloth.currentPattern) {
     const userPattern = document.getElementById('pattern').value;
@@ -349,9 +352,11 @@ function draw(){
   }
   
   for(const e of cloth.edges){ 
-    const patternColor = getPatternColor(e, cloth.currentPattern, baseStroke);
-    ctx.strokeStyle = patternColor;
-    e.stroke(baseStroke); 
+    if(e.active && e.p1 && e.p2) {
+      const patternColor = getPatternColor(e, cloth.currentPattern, baseStroke);
+      ctx.strokeStyle = patternColor;
+      e.stroke(baseStroke); 
+    }
   }
   ctx.restore();
   
@@ -370,12 +375,65 @@ function update(){
 canvas.addEventListener('mousedown',e=>{ mouse.button=e.which; mouse.px=mouse.x; mouse.py=mouse.y; const r=canvas.getBoundingClientRect(); mouse.x=(e.clientX-r.left)*(canvas.width/r.width); mouse.y=(e.clientY-r.top)*(canvas.height/r.height); mouse.down=true; e.preventDefault(); });
 canvas.addEventListener('mouseup',e=>{ mouse.down=false; e.preventDefault(); });
 canvas.addEventListener('mousemove',e=>{ mouse.px=mouse.x; mouse.py=mouse.y; const r=canvas.getBoundingClientRect(); mouse.x=(e.clientX-r.left)*(canvas.width/r.width); mouse.y=(e.clientY-r.top)*(canvas.height/r.height); e.preventDefault(); });
+
 canvas.addEventListener('contextmenu',e=> e.preventDefault());
 
+// ====== Touch Support for Mobile ======
+canvas.addEventListener('touchstart',e=>{ 
+  e.preventDefault(); // Prevent scrolling
+  if(e.touches.length === 1) {
+    const touch = e.touches[0];
+    const r = canvas.getBoundingClientRect();
+    mouse.button = 1; // Left click equivalent for touch (drag)
+    mouse.px = mouse.x; mouse.py = mouse.y;
+    mouse.x = (touch.clientX - r.left) * (canvas.width / r.width);
+    mouse.y = (touch.clientY - r.top) * (canvas.height / r.height);
+    mouse.down = true;
+  } else if(e.touches.length === 2) {
+    // Two-finger touch = right click equivalent (tear)
+    const touch = e.touches[0];
+    const r = canvas.getBoundingClientRect();
+    mouse.button = 2; // Right click equivalent for touch
+    mouse.px = mouse.x; mouse.py = mouse.y;
+    mouse.x = (touch.clientX - r.left) * (canvas.width / r.width);
+    mouse.y = (touch.clientY - r.top) * (canvas.height / r.height);
+    mouse.down = true;
+  }
+});
+
+canvas.addEventListener('touchend',e=>{ 
+  e.preventDefault();
+  mouse.down = false; 
+});
+
+canvas.addEventListener('touchmove',e=>{ 
+  e.preventDefault(); // Prevent scrolling
+  if(e.touches.length === 1) {
+    const touch = e.touches[0];
+    const r = canvas.getBoundingClientRect();
+    mouse.px = mouse.x; mouse.py = mouse.y;
+    mouse.x = (touch.clientX - r.left) * (canvas.width / r.width);
+    mouse.y = (touch.clientY - r.top) * (canvas.height / r.height);
+  } else if(e.touches.length === 2) {
+    // Update position for two-finger touch (tearing)
+    const touch = e.touches[0];
+    const r = canvas.getBoundingClientRect();
+    mouse.px = mouse.x; mouse.py = mouse.y;
+    mouse.x = (touch.clientX - r.left) * (canvas.width / r.width);
+    mouse.y = (touch.clientY - r.top) * (canvas.height / r.height);
+  }
+});
+
 function eraserAt(x,y){
+  if(!cloth || !cloth.edges) return;
+  
   const R = Number(ui.eraser.value);
   const dec = 0.18; // thickness decrement per pass
-  for(const e of cloth.edges){ if(!e.active) continue; const d = segDist(e.p1.x,e.p1.y,e.p2.x,e.p2.y,x,y); if(d<R){ const t = 1 - (d/R); e.w = Math.max(0, e.w - dec*t); } }
+  for(const e of cloth.edges){ 
+    if(!e.active || !e.p1 || !e.p2) continue; 
+    const d = segDist(e.p1.x,e.p1.y,e.p2.x,e.p2.y,x,y); 
+    if(d<R){ const t = 1 - (d/R); e.w = Math.max(0, e.w - dec*t); } 
+  }
 }
 function segDist(x1,y1,x2,y2, x0,y0){
   const A=x0-x1, B=y0-y1, C=x2-x1, D=y2-y1; const dot=A*C+B*D; const len=C*C+D*D; let u = len? (dot/len):0; u=Math.max(0,Math.min(1,u)); const X=x1+u*C, Y=y1+u*D; const dx=X-x0, dy=Y-y0; return Math.hypot(dx,dy);
@@ -383,11 +441,17 @@ function segDist(x1,y1,x2,y2, x0,y0){
 
 // ====== UI actions ======
 ui.reset.addEventListener('click',()=> initCloth());
-ui.resetThick.addEventListener('click',()=>{ for(const e of cloth.edges){ e.w=1; } });
+ui.resetThick.addEventListener('click',()=>{ 
+  if(cloth && cloth.edges) {
+    for(const e of cloth.edges){ 
+      if(e && e.w !== undefined) e.w=1; 
+    } 
+  } 
+});
 ui.toggleEraser.addEventListener('click',()=> toggleEraser());
 ui.grav.addEventListener('input',()=> gravity=Number(ui.grav.value));
 ui.tear.addEventListener('input',()=> tear_distance=Number(ui.tear.value));
-ui.brush.addEventListener('input',()=> mouse_influence=Number(ui.grav.value));
+ui.brush.addEventListener('input',()=> mouse_influence=Number(ui.brush.value));
 ui.thick.addEventListener('input',()=>{});
 window.addEventListener('keydown',e=>{ 
   if(e.key.toLowerCase()==='e'){ toggleEraser(); } 
