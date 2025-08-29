@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fabric Rip Poster — 2D Canvas (Verlet)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Krona+One&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{ --bg:#F6E8DF; --ink:#0A1B58; --cover:#F03B2C; }
+    html,body{ height:100%; margin:0; background:var(--bg); display:grid; place-items:center; }
+    #stage{ position:relative; width:min(92vw,1100px); height:calc(min(92vw,1100px)*1.414); max-height:92vh; border-radius:16px; overflow:hidden; box-shadow:0 14px 36px rgba(0,0,0,.3); background:var(--bg); }
+    #c{ width:100%; height:100%; display:block; }
+    .hud{ position:absolute; right:12px; bottom:12px; background:rgba(255,255,255,.88); color:#111; border-radius:12px; font:12px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; backdrop-filter:blur(6px); box-shadow:0 6px 18px rgba(0,0,0,.15); max-width:320px; overflow:hidden; transition:all 0.3s ease; }
+    .hud-header{ display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:rgba(255,255,255,.95); border-bottom:1px solid rgba(0,0,0,.1); }
+    .hud-content{ padding:10px 12px; }
+    .hud.collapsed .hud-content{ display:none; }
+    .hud.collapsed .hud-header{ border-bottom:none; }
+    .btn-toggle{ background:none; border:none; font-size:18px; cursor:pointer; color:#111; padding:0; width:20px; height:20px; display:flex; align-items:center; justify-content:center; }
+    .hud label{ display:block; margin-top:6px; }
+    .quip{ font-family:'Krona One',sans-serif; margin-top:6px; font-size:14px; }
+    .kbd{ padding:2px 5px; border-radius:6px; background:#111; color:#fff; font-size:11px; }
+    .row{ display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+    .toggled{ background:#111 !important; color:#fff !important; }
+    .btn{ padding:6px 10px; border-radius:8px; border:1px solid rgba(0,0,0,.15); background:#fff; cursor:pointer; font:12px/1 system-ui; }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <canvas id="c"></canvas>
+    <div class="hud" id="hud">
+      <div class="hud-header">
+        <span><b>Rip</b>: left‑drag to tug · <span class="kbd">Right‑drag</span> to cut · <span class="kbd">H</span> to hide</span>
+        <button id="toggle-hud" class="btn-toggle">−</button>
+      </div>
+      <div class="hud-content">
+        <label>Line thickness <input id="thick" type="range" min="0.6" max="2.2" step="0.05" value="1.15"></label>
+        <label>Brush size <input id="brush" type="range" min="5" max="40" value="20"></label>
+        <label>Eraser size <input id="eraser" type="range" min="6" max="80" value="26"></label>
+        <label>Tear distance <input id="tear" type="range" min="10" max="80" value="40"></label>
+              <label>Gravity <input id="grav" type="range" min="100" max="1200" step="50" value="400"></label>
+      <label>Pattern <select id="pattern">
+        <option value="random">Random</option>
+        <option value="checkerboard">Checkerboard</option>
+        <option value="polka-dots">Polka Dots</option>
+        <option value="stripes">Stripes</option>
+        <option value="squares">Squares</option>
+        <option value="circles">Circles</option>
+        <option value="zigzag">Zigzag</option>
+        <option value="diamonds">Diamonds</option>
+        <option value="stars">Stars</option>
+      </select></label>
+      <div class="row">
+        <button id="toggle-eraser" class="btn">Eraser (E)</button>
+        <button id="reset-thick" class="btn">Reset thickness</button>
+        <button id="reset" class="btn">Reset (R)</button>
+        <button id="save" class="btn">Export PNG (⌘/Ctrl+S)</button>
+      </div>
+        <div id="quip" class="quip"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ====== Krona One poster background ======
+const poster = document.createElement('canvas');
+const pctx = poster.getContext('2d');
+
+// Hidden presents that change with each reset
+const hiddenPresents = [
+  // Nice / Fun Presents
+  'A beach vacation', 'Unlimited cocktails', 'Noise-canceling headphones', 'A new bike',
+  'Free Netflix forever', 'Michelin-star dinner', 'Three weeks of massage', 'A spa weekend',
+  'Your dream sneakers', 'First-class upgrade', 'A puppy (good luck)', 'Year of free coffee',
+  'Private karaoke night', 'A rooftop party', 'Concert tickets',
+  
+  // Boring / Lame Presents
+  'Expired coupon', 'Single paperclip', 'A receipt (not yours)', 'Broken pencil',
+  'Free dust', 'Half a stapler', '2% battery', 'Empty box', 'Parking ticket',
+  'One unread email', 'Used chewing gum', 'Random USB cable', 'Mystery key (to nothing)',
+  '"World\'s Okayest" sticker', 'Free trial (already expired)', 'Lonely sock',
+  'Excel spreadsheet', 'Pocket lint', 'Free advice (unwanted)', 'Monday morning',
+  
+  // Weird / Experiential Mix
+  'A nap in public', 'Karaoke with strangers', '10 minutes of fame', 'All-you-can-scroll WiFi',
+  'A Zoom-free Monday', 'Your ex\'s playlist', 'Breakfast in bed (served by yourself)',
+  'A free therapy session (DIY)', 'Sunset on demand', 'One drama-free week',
+  'Lifetime supply of eye rolls', 'Random side quest unlocked'
+];
+
+let currentHiddenPresent = 'A beach vacation';
+
+function drawPoster(w,h){
+  poster.width = w; poster.height = h;
+  pctx.clearRect(0,0,w,h);
+  pctx.fillStyle = getCSS('--bg');
+  pctx.fillRect(0,0,w,h);
+  pctx.fillStyle = '#000000'; // Pure black instead of CSS variable
+  pctx.textAlign = 'center';
+  pctx.textBaseline = 'middle';
+
+  const present = currentHiddenPresent.toUpperCase(); // Convert to all caps
+  
+  // Try to make text as big as possible while fitting
+  const maxW = w * 0.95; // Use 95% of width for maximum size
+  let size = Math.floor(h * 0.4); // Start with 40% of height for maximum size
+  
+  while(size > 16){ // Minimum size of 16px
+    pctx.font = `bold ${size}px "Pixelify Sans", sans-serif`;
+    const textWidth = pctx.measureText(present).width;
+    if(textWidth <= maxW) break;
+    size -= 2;
+  }
+  
+  pctx.font = `bold ${size}px "Pixelify Sans", sans-serif`;
+  const y = h * 0.5; // Center vertically
+  
+  pctx.fillText(present, w/2, y);
+}
+
+// ====== Canvas / sizing ======
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const stage = document.getElementById('stage');
+const DPR = Math.max(1, window.devicePixelRatio||1);
+
+function resize(){
+  const w = Math.floor(stage.clientWidth * DPR);
+  const h = Math.floor(stage.clientHeight * DPR);
+  canvas.width = w; canvas.height = h;
+  drawPoster(w/DPR, h/DPR);
+  // Ensure the custom webfont is applied once loaded
+  if(document.fonts && document.fonts.ready){
+    document.fonts.ready.then(()=>{ drawPoster(w/DPR, h/DPR); });
+  }
+  initCloth();
+}
+window.addEventListener('resize', resize);
+
+// ====== Quip (funny prizes) ======
+const prizes = [
+  // Snack-sized "gifts"
+  'Socks, obviously', 'Vacation-ish', 'Three naps', 'Inbox Zero', 'Spa vibes', 'Tan lines', 
+  'Late checkout', 'Free upgrade', 'Champagne problem', 'Friday energy', 'No meetings', 
+  'Consequence-free', 'Clean slate', 'Brain off', 'Chaos pass', 'Drama mute', 'Fresh start', 
+  'Plot armor', 'Main-char card', 'Lucky break', 'Coffee token', 'Karma boost', 'Snack forever', 
+  'Extra life', 'Cheat day', 'Auto win', 'VIP mood', 'Flight credit', 'Spa credit', 'Time credit', 
+  'Nap credit', 'Do-not-disturb', 'Romance arc', 'Side quest', 'Quiet brain', 'Good hair', 
+  'Golden hour', 'Weekend mode', 'Zero guilt', 'Free serotonin',
+  // A bit spicy, still brand-safe
+  'Flirt credit', 'Kiss coupon', 'Text back', 'Petty pass', 'Unbothered mode', 'Thirst trap', 
+  'Bad idea', 'Bold choice'
+];
+
+function setQuip(){ 
+  const randomPrize = prizes[Math.floor(Math.random() * prizes.length)];
+  const randomPresent = hiddenPresents[Math.floor(Math.random() * hiddenPresents.length)];
+  
+  document.getElementById('quip').textContent = randomPrize;
+  currentHiddenPresent = randomPresent;
+  
+  // Redraw the poster with new hidden present
+  drawPoster(canvas.width/DPR, canvas.height/DPR);
+}
+
+// ====== Controls ======
+const ui = {
+  thick: document.getElementById('thick'),
+  brush: document.getElementById('brush'),
+  eraser:document.getElementById('eraser'),
+  tear:  document.getElementById('tear'),
+  grav:  document.getElementById('grav'),
+  toggleEraser: document.getElementById('toggle-eraser'),
+  resetThick: document.getElementById('reset-thick'),
+  reset: document.getElementById('reset'),
+  save:  document.getElementById('save'),
+  toggleHud: document.getElementById('toggle-hud'),
+};
+
+let erasing = false;
+let hudCollapsed = false;
+
+ui.toggleEraser.addEventListener('click', ()=>toggleEraser());
+ui.toggleHud.addEventListener('click', ()=>toggleHud());
+
+function toggleEraser(){ erasing = !erasing; ui.toggleEraser.classList.toggle('toggled', erasing); }
+function toggleHud(){ 
+  hudCollapsed = !hudCollapsed; 
+  document.getElementById('hud').classList.toggle('collapsed', hudCollapsed);
+  ui.toggleHud.textContent = hudCollapsed ? '+' : '−';
+}
+
+// ====== Cloth physics ======
+let cloth, boundsx=0, boundsy=0;
+const physics_accuracy = 3;
+let mouse_influence = 20;
+let mouse_cut = 10;
+let gravity = 400; // Reduced gravity so fabric doesn't fall immediately
+const cloth_height = 36;
+const cloth_width  = 60;
+let start_y = 0;
+let spacing = 9;
+let tear_distance = 40;
+
+const mouse = { down:false, button:1, x:0, y:0, px:0, py:0 };
+
+class Point{
+  constructor(x,y){ 
+    this.x=x; this.y=y; this.px=x; this.py=y; this.vx=0; this.vy=0; 
+    this.pin_x=null; this.pin_y=null; this.constraints=[];
+    this.initialX=x; this.initialY=y; // Store initial grid coordinates
+  }
+  update(delta){
+    if(mouse.down){
+      const dx=this.x-mouse.x, dy=this.y-mouse.y, dist=Math.hypot(dx,dy);
+      if(!erasing && mouse.button===1 && dist < mouse_influence){
+        this.px = this.x - (mouse.x - mouse.px) * 1.8;
+        this.py = this.y - (mouse.y - mouse.py) * 1.8;
+      } else if(!erasing && mouse.button!==1 && dist < mouse_cut * (Number(ui.brush.value)/10)){
+        // cut: remove all constraints referencing this point
+        while(this.constraints.length){
+          const c = this.constraints.pop(); c.active=false;
+          if(c.p1!==this) c.p1.remove_constraint(c);
+          if(c.p2!==this) c.p2.remove_constraint(c);
+        }
+      }
+    }
+    this.add_force(0, gravity);
+    delta *= delta;
+    const nx = this.x + ((this.x - this.px) * .998) + ((this.vx/2) * delta); // Increased damping
+    const ny = this.y + ((this.y - this.py) * .998) + ((this.vy/2) * delta); // Increased damping
+    this.px = this.x; this.py = this.y; this.x = nx; this.y = ny; this.vx = this.vy = 0;
+  }
+  resolve_constraints(){
+    if(this.pin_x!=null && this.pin_y!=null){ this.x=this.pin_x; this.y=this.pin_y; return; }
+    let i=this.constraints.length; while(i--) this.constraints[i].resolve();
+    this.x > boundsx ? this.x = 2*boundsx - this.x : (this.x < 1 && (this.x = 2 - this.x));
+    this.y < 1 ? this.y = 2 - this.y : (this.y > boundsy && (this.y = 2*boundsy - this.y));
+  }
+  attach(p){ const c = new Constraint(this,p); this.constraints.push(c); p.constraints.push(c); return c; }
+  remove_constraint(c){ const i=this.constraints.indexOf(c); if(i>-1) this.constraints.splice(i,1); c.active=false; }
+  add_force(x,y){ this.vx+=x; this.vy+=y; }
+  pin(x,y){ this.pin_x=x; this.pin_y=y; }
+}
+class Constraint{
+  constructor(p1,p2){ this.p1=p1; this.p2=p2; this.length=spacing; this.active=true; this.w=1; }
+  resolve(){
+    if(!this.active) return;
+    const dx=this.p1.x-this.p2.x, dy=this.p1.y-this.p2.y;
+    const dist=Math.hypot(dx,dy)||0.0001;
+    const diff=(this.length-dist)/dist;
+    if(dist > tear_distance){ this.active=false; this.p1.remove_constraint(this); this.p2.remove_constraint(this); return; }
+    const px=dx*diff*0.5, py=dy*diff*0.5;
+    this.p1.x += px; this.p1.y += py; this.p2.x -= px; this.p2.y -= py;
+  }
+  stroke(baseW){ if(!this.active || this.w<=0.02) return; ctx.lineWidth = Math.max(0.5, baseW * this.w); ctx.beginPath(); ctx.moveTo(this.p1.x,this.p1.y); ctx.lineTo(this.p2.x,this.p2.y); ctx.stroke(); }
+}
+class Cloth{
+  constructor(){
+    this.points=[]; const start_x = canvas.width/2 - cloth_width*spacing/2; 
+    for(let y=0;y<=cloth_height;y++){
+      for(let x=0;x<=cloth_width;x++){
+        const p=new Point(start_x+x*spacing,start_y+y*spacing);
+        if(x!==0) p.attach(this.points[this.points.length-1]);
+        if(y===0) p.pin(p.x,p.y); // Pin top row firmly
+        if(y!==0) p.attach(this.points[x+(y-1)*(cloth_width+1)]);
+        this.points.push(p);
+      }
+    }
+    // collect unique edges
+    this.edges = collectEdges(this.points);
+  }
+  update(){ let i=physics_accuracy; while(i--){ let p=this.points.length; while(p--) this.points[p].resolve_constraints(); } let j=this.points.length; while(j--) this.points[j].update(0.016); }
+}
+
+function collectEdges(points){
+  const set = new Set(); const edges=[];
+  for(const p of points){ for(const c of p.constraints){ if(!set.has(c)){ set.add(c); edges.push(c); } } }
+  return edges;
+}
+
+function initCloth(){
+  gravity = Number(ui.grav.value);
+  tear_distance = Number(ui.tear.value);
+  mouse_influence = Number(ui.brush.value);
+  boundsx = canvas.width-1; boundsy = canvas.height-1;
+  // spacing to cover whole canvas
+  const spacingW = Math.max(6, Math.floor(canvas.width / cloth_width));
+  const spacingH = Math.max(6, Math.floor(canvas.height / (cloth_height+2)));
+  spacing = Math.min(spacingW, spacingH);
+  start_y = Math.max(0, Math.floor((canvas.height - spacing*cloth_height)*0.02));
+  cloth = new Cloth();
+  setQuip();
+}
+
+// ====== Rendering ======
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(poster,0,0,canvas.width,canvas.height);
+
+  // Fabric drawn as thick strokes for intact edges
+  const baseStroke = spacing * Number(ui.thick.value);
+  ctx.save();
+  ctx.strokeStyle = getCSS('--cover');
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  
+  // Gift package patterns
+  const patterns = [
+    'checkerboard', 'polka-dots', 'stripes', 'squares', 'circles', 'zigzag', 'diamonds', 'stars'
+  ];
+  
+  // Get user's pattern choice or random (only once per cloth creation)
+  if (!cloth.currentPattern) {
+    const userPattern = document.getElementById('pattern').value;
+    cloth.currentPattern = userPattern === 'random' ? patterns[Math.floor(Math.random() * patterns.length)] : userPattern;
+  }
+  
+  for(const e of cloth.edges){ 
+    const patternColor = getPatternColor(e, cloth.currentPattern, baseStroke);
+    ctx.strokeStyle = patternColor;
+    e.stroke(baseStroke); 
+  }
+  ctx.restore();
+}
+
+function update(){
+  cloth.update();
+  if(erasing && mouse.down && mouse.button===1){ eraserAt(mouse.x, mouse.y); }
+  draw();
+  requestAnimationFrame(update);
+}
+
+// ====== Mouse & Eraser ======
+canvas.addEventListener('mousedown',e=>{ mouse.button=e.which; mouse.px=mouse.x; mouse.py=mouse.y; const r=canvas.getBoundingClientRect(); mouse.x=(e.clientX-r.left)*(canvas.width/r.width); mouse.y=(e.clientY-r.top)*(canvas.height/r.height); mouse.down=true; e.preventDefault(); });
+canvas.addEventListener('mouseup',e=>{ mouse.down=false; e.preventDefault(); });
+canvas.addEventListener('mousemove',e=>{ mouse.px=mouse.x; mouse.py=mouse.y; const r=canvas.getBoundingClientRect(); mouse.x=(e.clientX-r.left)*(canvas.width/r.width); mouse.y=(e.clientY-r.top)*(canvas.height/r.height); e.preventDefault(); });
+canvas.addEventListener('contextmenu',e=> e.preventDefault());
+
+function eraserAt(x,y){
+  const R = Number(ui.eraser.value);
+  const dec = 0.18; // thickness decrement per pass
+  for(const e of cloth.edges){ if(!e.active) continue; const d = segDist(e.p1.x,e.p1.y,e.p2.x,e.p2.y,x,y); if(d<R){ const t = 1 - (d/R); e.w = Math.max(0, e.w - dec*t); } }
+}
+function segDist(x1,y1,x2,y2, x0,y0){
+  const A=x0-x1, B=y0-y1, C=x2-x1, D=y2-y1; const dot=A*C+B*D; const len=C*C+D*D; let u = len? (dot/len):0; u=Math.max(0,Math.min(1,u)); const X=x1+u*C, Y=y1+u*D; const dx=X-x0, dy=Y-y0; return Math.hypot(dx,dy);
+}
+
+// ====== UI actions ======
+ui.reset.addEventListener('click',()=> initCloth());
+ui.resetThick.addEventListener('click',()=>{ for(const e of cloth.edges){ e.w=1; } });
+ui.toggleEraser.addEventListener('click',()=> toggleEraser());
+ui.grav.addEventListener('input',()=> gravity=Number(ui.grav.value));
+ui.tear.addEventListener('input',()=> tear_distance=Number(ui.tear.value));
+ui.brush.addEventListener('input',()=> mouse_influence=Number(ui.grav.value));
+ui.thick.addEventListener('input',()=>{});
+window.addEventListener('keydown',e=>{ 
+  if(e.key.toLowerCase()==='e'){ toggleEraser(); } 
+  if(e.key.toLowerCase()==='h'){ toggleHud(); }
+  if(e.key.toLowerCase()==='r'){ initCloth(); } 
+  if((e.key.toLowerCase()==='s')&&(e.metaKey||e.ctrlKey)){ e.preventDefault(); exportPNG(); } 
+});
+
+function exportPNG(){ const a=document.createElement('a'); a.download=`cloth-rip-${Date.now()}.png`; a.href=canvas.toDataURL('image/png'); a.click(); }
+ui.save.addEventListener('click',exportPNG);
+
+function getPatternColor(edge, pattern, baseStroke) {
+  // Use initial grid coordinates, not current moving positions
+  const x = edge.p1.initialX || edge.p1.x;
+  const y = edge.p1.initialY || edge.p1.y;
+  const spacing = baseStroke * 2;
+  
+  switch(pattern) {
+    case 'checkerboard':
+      const checkX = Math.floor(x / spacing);
+      const checkY = Math.floor(y / spacing);
+      return (checkX + checkY) % 2 === 0 ? '#F03B2C' : '#FFD700';
+      
+    case 'polka-dots':
+      const dotX = Math.floor(x / spacing);
+      const dotY = Math.floor(y / spacing);
+      const inDot = Math.sqrt((x - dotX * spacing - spacing/2) ** 2 + (y - dotY * spacing - spacing/2) ** 2) < spacing/3;
+      return inDot ? '#FF69B4' : '#F03B2C';
+      
+    case 'stripes':
+      const stripeX = Math.floor(x / spacing);
+      return stripeX % 2 === 0 ? '#F03B2C' : '#FFD700';
+      
+    case 'squares':
+      const squareX = Math.floor(x / spacing);
+      const squareY = Math.floor(y / spacing);
+      const inSquare = (squareX % 2 === 0 && squareY % 2 === 0) || (squareX % 2 === 1 && squareY % 2 === 1);
+      return inSquare ? '#FF69B4' : '#F03B2C';
+      
+    case 'circles':
+      const circleX = Math.floor(x / spacing);
+      const circleY = Math.floor(y / spacing);
+      const inCircle = Math.sqrt((x - circleX * spacing - spacing/2) ** 2 + (y - circleY * spacing - spacing/2) ** 2) < spacing/2.5;
+      return inCircle ? '#FFD700' : '#F03B2C';
+      
+    case 'zigzag':
+      const zigX = Math.floor(x / spacing);
+      const zigY = Math.floor(y / spacing);
+      const zigPattern = (zigX + zigY * 2) % 4;
+      return zigPattern < 2 ? '#F03B2C' : '#FF69B4';
+      
+    case 'diamonds':
+      const diamondX = Math.floor(x / spacing);
+      const diamondY = Math.floor(y / spacing);
+      const diamondPattern = Math.abs(diamondX - diamondY) % 2;
+      return diamondPattern === 0 ? '#FFD700' : '#F03B2C';
+      
+    case 'stars':
+      const starX = Math.floor(x / spacing);
+      const starY = Math.floor(y / spacing);
+      const starPattern = (starX * 3 + starY * 2) % 5;
+      return starPattern === 0 ? '#FFD700' : '#F03B2C';
+      
+    default:
+      return '#F03B2C';
+  }
+}
+
+function getCSS(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+// Start
+resize();
+update();
+</script>
+</body>
+</html> 
