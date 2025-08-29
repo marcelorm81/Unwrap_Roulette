@@ -28,17 +28,17 @@
 <body>
   <div id="stage">
     <canvas id="c"></canvas>
-    <div class="hud" id="hud">
+    <div class="hud collapsed" id="hud">
       <div class="hud-header">
-        <span><b>Rip</b>: left‑drag to tug · <span class="kbd">Right‑drag</span> to cut · <span class="kbd">H</span> to hide</span>
-        <button id="toggle-hud" class="btn-toggle">−</button>
+        <span><b>Rip</b>: left‑drag to tug · <span class="kbd">Right‑drag</span> to cut · <span class="kbd">R</span> to reset</span>
+        <button id="toggle-hud" class="btn-toggle">+</button>
       </div>
       <div class="hud-content">
         <label>Line thickness <input id="thick" type="range" min="0.6" max="2.2" step="0.05" value="1.15"></label>
         <label>Brush size <input id="brush" type="range" min="5" max="40" value="20"></label>
         <label>Eraser size <input id="eraser" type="range" min="6" max="80" value="26"></label>
         <label>Tear distance <input id="tear" type="range" min="10" max="80" value="40"></label>
-              <label>Gravity <input id="grav" type="range" min="100" max="1200" step="50" value="400"></label>
+              <label>Gravity <input id="grav" type="range" min="100" max="1200" step="50" value="300"></label>
       <label>Pattern <select id="pattern">
         <option value="random">Random</option>
         <option value="checkerboard">Checkerboard</option>
@@ -178,7 +178,7 @@ const ui = {
 };
 
 let erasing = false;
-let hudCollapsed = false;
+let hudCollapsed = true; // Start collapsed by default
 
 ui.toggleEraser.addEventListener('click', ()=>toggleEraser());
 ui.toggleHud.addEventListener('click', ()=>toggleHud());
@@ -195,7 +195,7 @@ let cloth, boundsx=0, boundsy=0;
 const physics_accuracy = 3;
 let mouse_influence = 20;
 let mouse_cut = 10;
-let gravity = 400; // Reduced gravity so fabric doesn't fall immediately
+let gravity = 300; // Reduced gravity for more gentle fabric movement
 const cloth_height = 36;
 const cloth_width  = 60;
 let start_y = 0;
