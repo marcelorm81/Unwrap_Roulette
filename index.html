@@ -18,7 +18,6 @@
     .hud.collapsed .hud-header{ border-bottom:none; }
     .btn-toggle{ background:none; border:none; font-size:18px; cursor:pointer; color:#111; padding:0; width:20px; height:20px; display:flex; align-items:center; justify-content:center; }
     .hud label{ display:block; margin-top:6px; }
-    .quip{ font-family:'Krona One',sans-serif; margin-top:6px; font-size:14px; }
     .kbd{ padding:2px 5px; border-radius:6px; background:#111; color:#fff; font-size:11px; }
     .row{ display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
     .toggled{ background:#111 !important; color:#fff !important; }
@@ -81,7 +80,6 @@
             <button id="reset" class="btn">Reset (R)</button>
             <button id="save" class="btn">Export PNG (⌘/Ctrl+S)</button>
           </div>
-          <div id="quip" class="quip"></div>
         </div>
       </div>
       <button id="unwrap-button" class="unwrap-btn" style="display: none;">Unwrap a new present</button>
@@ -95,22 +93,22 @@ const pctx = poster.getContext('2d');
 // Hidden presents that change with each reset
 const hiddenPresents = [
   // Nice / Fun Presents
-  'A beach vacation', 'Unlimited cocktails', 'Noise-canceling headphones', 'A new bike',
+  'A beach vacation', 'Unlimited wine (boxed only)', 'Free gym membership (closes tomorrow)', 'Romantic dinner (microwave lasagna)',
   'Free Netflix forever', 'Michelin-star dinner', 'Three weeks of massage', 'A spa weekend',
   'Your dream sneakers', 'First-class upgrade', 'A puppy (good luck)', 'Year of free coffee',
   'Private karaoke night', 'A rooftop party', 'Concert tickets',
   
   // Boring / Lame Presents
-  'Expired coupon', 'Single paperclip', 'A receipt (not yours)', 'Broken pencil',
+  'Expired coupon', 'Hotel soap (half used)', 'Bag of ice (already melted)', 'Broken pencil',
   'Free dust', 'Half a stapler', '2% battery', 'Empty box', 'Parking ticket',
-  'One unread email', 'Used chewing gum', 'Random USB cable', 'Mystery key (to nothing)',
+  'One unread email', 'Used chewing gum', 'Random USB cable', 'Plant (already dead)',
   '"World\'s Okayest" sticker', 'Free trial (already expired)', 'Lonely sock',
   'Excel spreadsheet', 'Pocket lint', 'Free advice (unwanted)', 'Monday morning', 'Tariffs',
   
   // Weird / Experiential Mix
-  'A nap in public', 'Karaoke with strangers', '10 minutes of fame', 'All-you-can-scroll WiFi',
+  'Silent retreat (someone snores)', 'Karaoke with strangers', '10 minutes of fame', 'All-you-can-scroll WiFi',
   'A Zoom-free Monday', 'Your ex\'s playlist', 'Breakfast in bed (served by yourself)',
-  'A free therapy session (DIY)', 'Sunset on demand', 'One drama-free week',
+  'A free therapy session (DIY)', 'Boat cruise (seasick guarantee)', 'One drama-free week',
   'Lifetime supply of eye rolls', 'Random side quest unlocked'
 ];
 
@@ -163,26 +161,26 @@ function resize(){
 }
 window.addEventListener('resize', resize);
 
-// ====== Quip (funny prizes) ======
+// ====== Quip (sarcastic prizes) ======
 const prizes = [
-  // Snack-sized "gifts"
-  'Socks, obviously', 'Vacation-ish', 'Three naps', 'Inbox Zero', 'Spa vibes', 'Tan lines', 
-  'Late checkout', 'Free upgrade', 'Champagne problem', 'Friday energy', 'No meetings', 
-  'Consequence-free', 'Clean slate', 'Brain off', 'Chaos pass', 'Drama mute', 'Fresh start', 
-  'Plot armor', 'Main-char card', 'Lucky break', 'Coffee token', 'Karma boost', 'Snack forever', 
-  'Extra life', 'Cheat day', 'Auto win', 'VIP mood', 'Flight credit', 'Spa credit', 'Time credit', 
-  'Nap credit', 'Do-not-disturb', 'Romance arc', 'Side quest', 'Quiet brain', 'Good hair', 
-  'Golden hour', 'Weekend mode', 'Zero guilt', 'Free serotonin',
-  // A bit spicy, still brand-safe
-  'Flirt credit', 'Kiss coupon', 'Text back', 'Petty pass', 'Unbothered mode', 'Thirst trap', 
-  'Bad idea', 'Bold choice'
+  // "Good" Prizes (with a twist)
+  'All-inclusive trip to… your couch', 'Champagne, but warm', 'A puppy (already peed)', 
+  'First-class seat (middle row)', 'Michelin dinner… with your ex', 'Free Netflix forever (ads included)', 
+  'Dream sneakers (wrong size)', 'Spa day… at the DMV', 'Three weeks of massage (from Chad in finance)', 
+  'A rooftop party (neighbors invited)', 'Private karaoke (with your boss)', 'Year of free coffee (decaf only)', 
+  'Noise-canceling headphones (don\'t work on family)', 'Beach vacation (wifi still sucks)', 
+  'Concert tickets (back row, no view)',
+  
+  // Truly Lame Presents
+  'Expired coupon', 'Single paperclip', 'A receipt (not yours)', 'Broken pencil', 'Free dust', 
+  'Half a stapler', '2% battery', 'Empty box', 'Parking ticket', 'One unread email', 
+  'Used chewing gum', 'Random USB cable', 'Mystery key (to nothing)', '"World\'s Okayest" sticker', 
+  'Free trial (already expired)', 'Lonely sock', 'Excel spreadsheet', 'Pocket lint', 
+  'Free advice (unwanted)', 'Monday morning', 'Tariffs'
 ];
 
 function setQuip(){ 
-  const randomPrize = prizes[Math.floor(Math.random() * prizes.length)];
   const randomPresent = hiddenPresents[Math.floor(Math.random() * hiddenPresents.length)];
-  
-  document.getElementById('quip').textContent = randomPrize;
   currentHiddenPresent = randomPresent;
   
   // Redraw the poster with new hidden present
