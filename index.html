@@ -322,6 +322,12 @@ function initCloth(){
   start_y = 0; // Always start from top
   
   cloth = new Cloth();
+  
+  // Set pattern once per cloth creation and precompute edge colors
+  const userPattern = document.getElementById('pattern').value;
+  cloth.currentPattern = userPattern === 'random' ? patterns[Math.floor(Math.random() * patterns.length)] : userPattern;
+  recomputeEdgeColors();
+  
   setQuip();
 }
 
@@ -345,16 +351,11 @@ function draw(){
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   
-  // Get user's pattern choice or random (only once per cloth creation)
-  if (!cloth.currentPattern) {
-    const userPattern = document.getElementById('pattern').value;
-    cloth.currentPattern = userPattern === 'random' ? patterns[Math.floor(Math.random() * patterns.length)] : userPattern;
-  }
-  
   for(const e of cloth.edges){ 
     if(e.active && e.p1 && e.p2) {
-      const patternColor = getPatternColor(e, cloth.currentPattern, baseStroke);
-      ctx.strokeStyle = patternColor;
+      // Use cached color if available
+      const color = e._cachedColor || getPatternColor(e, cloth.currentPattern, baseStroke);
+      ctx.strokeStyle = color;
       e.stroke(baseStroke); 
     }
   }
@@ -452,7 +453,7 @@ ui.toggleEraser.addEventListener('click',()=> toggleEraser());
 ui.grav.addEventListener('input',()=> gravity=Number(ui.grav.value));
 ui.tear.addEventListener('input',()=> tear_distance=Number(ui.tear.value));
 ui.brush.addEventListener('input',()=> mouse_influence=Number(ui.brush.value));
-ui.thick.addEventListener('input',()=>{});
+ui.thick.addEventListener('input',()=>{ recomputeEdgeColors(); });
 window.addEventListener('keydown',e=>{ 
   if(e.key.toLowerCase()==='e'){ toggleEraser(); } 
   if(e.key.toLowerCase()==='h'){ toggleHud(); }
@@ -463,6 +464,13 @@ window.addEventListener('keydown',e=>{
 // Add unwrap button event listener
 document.getElementById('unwrap-button').addEventListener('click', () => {
   initCloth();
+});
+
+document.getElementById('pattern').addEventListener('change', () => {
+  // When pattern changes, set and recompute colors
+  const userPattern = document.getElementById('pattern').value;
+  cloth.currentPattern = userPattern === 'random' ? patterns[Math.floor(Math.random() * patterns.length)] : userPattern;
+  recomputeEdgeColors();
 });
 
 function exportPNG(){ const a=document.createElement('a'); a.download=`cloth-rip-${Date.now()}.png`; a.href=canvas.toDataURL('image/png'); a.click(); }
@@ -547,6 +555,17 @@ function checkSentenceVisibility() {
 }
 
 function getCSS(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+// Cache computed pattern colors per edge to avoid recomputation every frame
+function recomputeEdgeColors(){
+  if(!cloth || !cloth.edges) return;
+  const baseStroke = spacing * Number(ui.thick.value);
+  for(const e of cloth.edges){
+    if(e && e.p1 && e.p2){
+      e._cachedColor = getPatternColor(e, cloth.currentPattern, baseStroke);
+    }
+  }
+}
 
 // Start
 resize();
