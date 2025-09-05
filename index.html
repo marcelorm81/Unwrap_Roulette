@@ -19,7 +19,7 @@
     .intro{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.0); pointer-events:auto; }
     .intro-inner{ background:#B31313; color:#000; box-sizing:border-box; width:clamp(220px, 36vw, 380px); aspect-ratio:1/1; padding:20px; border-radius:10px; box-shadow:0 8px 28px rgba(0,0,0,.35); text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:8px; opacity:0; transform:translateY(12px) scale(0.98); transition:opacity .45s cubic-bezier(.2,.8,.2,1), transform .45s cubic-bezier(.2,.8,.2,1); }
     .intro.show .intro-inner{ opacity:1; transform:none; }
-    .intro-title{ font-family:'Pixelify Sans',sans-serif; font-weight:700; letter-spacing:2px; color:#000; font-size:32pt; line-height:23pt; white-space:pre-line; }
+         .intro-title{ font-family:'Pixelify Sans',sans-serif; font-weight:700; letter-spacing:2px; color:#000; font-size:clamp(20px, 4.2vw, 30pt); line-height:clamp(18px, 3vw, 23pt); white-space:pre-line; }
     .intro-btn{ margin-top:0; background:#111; color:#F03B2C; border:none; padding:10px 18px; border-radius:8px; font-family:'Pixelify Sans',sans-serif; font-weight:700; letter-spacing:1px; font-size:14px; cursor:pointer; transition:transform .1s ease, background .2s ease, color .2s ease; }
     .intro-btn:hover{ background:#FFD700; color:#000; }
     .intro-btn:active{ transform:translateY(1px) scale(0.99); color:#ff7a6f; }
@@ -28,6 +28,17 @@
     .intro.hidden .intro-inner{ opacity:0; transform:translateY(8px); }
     .intro-center{ margin:auto 0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:24px; padding-top:48px; padding-bottom:0; }
 
+    /* Responsive tweaks */
+    @media (max-width: 520px){
+      .intro-inner{ width:clamp(260px, 86vw, 420px); padding:16px; }
+      .intro-center{ gap:30px; padding-top:44px; }
+      .intro-title{ font-size:clamp(26px, 8vw, 30pt); line-height:clamp(22px, 5.6vw, 23pt); }
+      .intro-btn{ padding:14px 20px; font-size:15px; }
+      .intro-note{ font-size:11px; }
+    }
+    @media (min-width: 900px){
+      .intro-center{ gap:50px; padding-top:60px; }
+    }
     /* Simplified HUD collapsed: a small square button */
     .hud.collapsed{ width:auto; height:auto; padding:0; background:transparent; box-shadow:none; border-radius:10px; }
     .hud.collapsed .hud-header{ padding:6px; background:#fff; border:1px solid rgba(0,0,0,.15); border-radius:10px; box-shadow:0 4px 14px rgba(0,0,0,.18); }
@@ -71,11 +82,22 @@
     .unwrap-btn:active{ 
       transform:translateX(-50%) translateY(0); 
     }
+
+    /* Mini reset button (bottom-left), matching collapsed HUD square */
+    .mini-reset{ position:absolute; left:12px; bottom:12px; background:#fff; border:1px solid rgba(0,0,0,.15); width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,.18); cursor:pointer; transition:background .2s ease, transform .05s ease; }
+    .mini-reset:hover{ background:#f6f6f6; }
+    .mini-reset:active{ transform:translateY(1px); }
+    .icon-refresh{ font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; font-weight:700; font-size:18px; line-height:1; color:#111; display:flex; align-items:center; justify-content:center; width:20px; height:20px; }
+    .icon-refresh:before{ content:none; }
+    .icon-refresh:after{ content:none; }
   </style>
 </head>
 <body>
       <div id="stage">
       <canvas id="c"></canvas>
+      <button id="mini-reset" class="mini-reset" title="Reset">
+        <span class="icon-refresh" aria-hidden="true">↻</span>
+      </button>
       <div id="intro" class="intro show">
         <div class="intro-inner">
           <div class="intro-center">
@@ -771,6 +793,10 @@ window.addEventListener('keydown',e=>{
 document.getElementById('unwrap-button').addEventListener('click', () => {
   initCloth();
 });
+
+// Mini reset button
+const miniReset = document.getElementById('mini-reset');
+if(miniReset){ miniReset.addEventListener('click', ()=> initCloth()); }
 
 // Intro overlay behavior
 const introEl = document.getElementById('intro');
