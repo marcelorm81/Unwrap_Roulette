@@ -23,15 +23,15 @@
     .intro-btn{ margin-top:0; background:#111; color:#F03B2C; border:none; padding:10px 18px; border-radius:8px; font-family:'Pixelify Sans',sans-serif; font-weight:700; letter-spacing:1px; font-size:14px; cursor:pointer; transition:transform .1s ease, background .2s ease, color .2s ease; }
     .intro-btn:hover{ background:#FFD700; color:#000; }
     .intro-btn:active{ transform:translateY(1px) scale(0.99); color:#ff7a6f; }
-    .intro-note{ margin-top:auto; color:#111; opacity:0.85; font:12px/1.4 'Courier Prime', monospace; }
+    .intro-note{ margin:0; color:#111; opacity:0.85; font:12px/1.4 'Courier Prime', monospace; }
     .intro.hidden{ pointer-events:none; }
     .intro.hidden .intro-inner{ opacity:0; transform:translateY(8px); }
-    .intro-center{ margin:auto 0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:24px; padding-top:48px; padding-bottom:0; }
+    .intro-center{ margin:auto 0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:28px; padding-top:48px; padding-bottom:48px; }
 
     /* Responsive tweaks */
     @media (max-width: 520px){
       .intro-inner{ width:clamp(260px, 86vw, 420px); padding:16px; }
-      .intro-center{ gap:30px; padding-top:44px; }
+      .intro-center{ gap:32px; padding-top:44px; padding-bottom:44px; }
       .intro-title{ font-size:clamp(30px, 9.8vw, 33pt); line-height:0.8; }
       .intro-btn{ padding:14px 20px; font-size:15px; }
       .intro-note{ font-size:11px; }
@@ -78,8 +78,8 @@
           <div class="intro-center">
             <div class="intro-title">UNWRAP<br>ROULETTE</div>
             <button id="start-btn" class="intro-btn">START</button>
+            <div class="intro-note">The gift? Who cares.<br>The unwrap? That’s the fun part.<br>Drag, tear, refresh. Repeat.</div>
           </div>
-          <div class="intro-note">The gift? Who cares.<br>The unwrap? That’s the fun part.<br>Drag, tear, refresh. Repeat.</div>
         </div>
       </div>
       <div class="hud collapsed" id="hud">
