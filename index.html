@@ -57,31 +57,6 @@
     .row{ display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
     .toggled{ background:#111 !important; color:#fff !important; }
     .btn{ padding:6px 10px; border-radius:8px; border:1px solid rgba(0,0,0,.15); background:#fff; cursor:pointer; font:12px/1 system-ui; }
-    .unwrap-btn{ 
-      position:absolute; 
-      left:50%; 
-      top:70%; 
-      transform:translateX(-50%); 
-      background:linear-gradient(135deg, #FFD700 0%, #FFA500 100%); 
-      color:#000; 
-      border:none; 
-      padding:15px 30px; 
-      border-radius:25px; 
-      font-family:'Krona One',sans-serif; 
-      font-size:1.2rem; 
-      font-weight:bold; 
-      cursor:pointer; 
-      transition:all 0.3s ease; 
-      box-shadow:0 6px 20px rgba(255,215,0,0.4); 
-      z-index:1000;
-    }
-    .unwrap-btn:hover{ 
-      transform:translateX(-50%) translateY(-3px); 
-      box-shadow:0 8px 25px rgba(255,215,0,0.6); 
-    }
-    .unwrap-btn:active{ 
-      transform:translateX(-50%) translateY(0); 
-    }
 
     /* Mini reset button (bottom-left), matching collapsed HUD square */
     .mini-reset{ position:absolute; left:12px; bottom:12px; background:#fff; border:1px solid rgba(0,0,0,.15); width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,.18); cursor:pointer; transition:background .2s ease, transform .05s ease; }
@@ -137,7 +112,7 @@
           </div>
         </div>
       </div>
-      <button id="unwrap-button" class="unwrap-btn" style="display: none;">Unwrap a new present</button>
+
     </div>
 
 <script>
@@ -686,11 +661,7 @@ function draw(){
   }
   ctx.restore();
   
-  // Check if sentence is fully visible and show/hide unwrap button (throttled)
-  visibilityTick = (visibilityTick + 1) & 7; // every 8 frames
-  if(visibilityTick === 0){
-    checkSentenceVisibility();
-  }
+
 }
 
 function update(){
@@ -789,10 +760,7 @@ window.addEventListener('keydown',e=>{
   if((e.key.toLowerCase()==='s')&&(e.metaKey||e.ctrlKey)){ e.preventDefault(); exportPNG(); } 
 });
 
-// Add unwrap button event listener
-document.getElementById('unwrap-button').addEventListener('click', () => {
-  initCloth();
-});
+
 
 // Mini reset button
 const miniReset = document.getElementById('mini-reset');
@@ -879,26 +847,7 @@ function getPatternColor(edge, pattern, baseStroke) {
   }
 }
 
-function checkSentenceVisibility() {
-  const unwrapButton = document.getElementById('unwrap-button');
-  
-  // Check if there are enough torn areas to see the sentence
-  let tornEdges = 0;
-  let totalEdges = 0;
-  
-  for(const e of cloth.edges) {
-    totalEdges++;
-    if(!e.active) tornEdges++;
-  }
-  
-  // Show button if more than 30% of fabric is torn
-  const tearPercentage = tornEdges / totalEdges;
-  if(tearPercentage > 0.3) {
-    unwrapButton.style.display = 'block';
-  } else {
-    unwrapButton.style.display = 'none';
-  }
-}
+
 
 function getCSS(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
 
