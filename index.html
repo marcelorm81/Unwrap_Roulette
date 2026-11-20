@@ -541,8 +541,8 @@ function solveOnce(){
   let started=false; if(grab.on && supD){ for(const i of grab.kin.keys()){ if(supD[i]<4){ started=true; break; } } }
   // rip zone follows the hand, clamped to the box so pulling a flap far past the edge keeps tearing at the rim
   const tearX=clamp(grab.wx-grab.ox,-lidW/2,lidW/2), tearY=clamp(grab.wy-grab.oy,-lidH/2,lidH/2);
-  const { pos, im, ea, eb, rest, lim, dmg, ealive, lone, E, nx, calive, shRest, BN, ba, bb, be1, be2, brest, C } = S;
-  for(let e=0;e<E;e++){
+  const { pos, ea, eb, rest, lim, dmg, ealive, lone, nx, calive, shRest, ba, bb, be1, be2, brest, actE, actC, actB } = S; const im=S.wm;
+  for(let ai=0, an=S.nE; ai<an; ai++){ const e=actE[ai];
     if(!ealive[e]) continue;
     const ia=ea[e], ib=eb[e], a=ia*3, b=ib*3;
     const dx=pos[a]-pos[b], dy=pos[a+1]-pos[b+1], dz=pos[a+2]-pos[b+2];
@@ -565,7 +565,7 @@ function solveOnce(){
     pos[b]+=dx*k*wb; pos[b+1]+=dy*k*wb; pos[b+2]+=dz*k*wb;
   }
   const cw=nx-1;
-  for(let c=0;c<C;c++){
+  for(let ai=0, an=S.nC; ai<an; ai++){ const c=actC[ai];
     if(!calive[c]) continue;
     const i=c%cw, j=(c/cw)|0, A=j*nx+i;
     for(let s=0;s<2;s++){
@@ -578,7 +578,7 @@ function solveOnce(){
       pos[q]+=dx*k*wb; pos[q+1]+=dy*k*wb; pos[q+2]+=dz*k*wb;
     }
   }
-  for(let b=0;b<BN;b++){
+  for(let ai=0, an=S.nB; ai<an; ai++){ const b=actB[ai];
     if(!ealive[be1[b]]||!ealive[be2[b]]) continue;
     const ip=ba[b], iq=bb[b], p=ip*3, q=iq*3;
     const dx=pos[p]-pos[q], dy=pos[p+1]-pos[q+1], dz=pos[p+2]-pos[q+2];
@@ -592,8 +592,9 @@ function solveOnce(){
 
 function collide(){
   const { pos, prv, im, N, anchored } = S; const hx=lidW/2, hy=lidH/2, D=innerDepth(), floorOut=-boxH+ZC, LIM=3, w=0.006;
+  const aw=S.aw;
   for(let i=0;i<N;i++){
-    if(im[i]===0) continue;
+    if(im[i]===0 || !aw[i]) continue;
     const k=i*3; let x=pos[k], y=pos[k+1], z=pos[k+2];
     const inside = Math.abs(x)<hx && Math.abs(y)<hy;
     let contact=false;
@@ -627,7 +628,7 @@ const innerDepth = ()=> boxH*0.82;
 
 // keep folded layers from z-fighting: push overlapping non-neighbours apart vertically
 function selfCollide(){
-  const { pos, im, N, nx, hashCount, hashFill, hashSorted, hashKey } = S;
+  const { pos, N, nx, hashCount, hashFill, hashSorted, hashKey, aw } = S; const im=S.wm;
   const h = S.sx*0.7, r2=h*h, thick=S.sx*0.28, MASK=16383;
   hashCount.fill(0);
   for(let i=0;i<N;i++){ const ix=Math.floor(pos[i*3]/h), iy=Math.floor(pos[i*3+1]/h); const key=((Math.imul(ix,73856093)^Math.imul(iy,19349663))>>>0)&MASK; hashKey[i]=key; hashCount[key+1]++; }
@@ -635,12 +636,13 @@ function selfCollide(){
   hashFill.set(hashCount.subarray(0,MASK+1));
   for(let i=0;i<N;i++){ hashSorted[hashFill[hashKey[i]]++]=i; }
   for(let i=0;i<N;i++){
+    if(!aw[i]) continue;
     const x=pos[i*3], y=pos[i*3+1], z=pos[i*3+2];
     const ix=Math.floor(x/h), iy=Math.floor(y/h), gi=i%nx, gj=(i/nx)|0;
     for(let ox=-1;ox<=1;ox++) for(let oy=-1;oy<=1;oy++){
       const key=((Math.imul(ix+ox,73856093)^Math.imul(iy+oy,19349663))>>>0)&MASK;
       for(let s=hashCount[key], e=hashCount[key+1]; s<e; s++){
-        const j=hashSorted[s]; if(j<=i) continue;
+        const j=hashSorted[s]; if(j===i || (j<i && aw[j])) continue;
         const gx=j%nx, gy=(j/nx)|0; if(Math.abs(gx-gi)<=2 && Math.abs(gy-gj)<=2) continue;
         const dx=pos[j*3]-x, dy=pos[j*3+1]-y; if(dx*dx+dy*dy>r2) continue;
         const dz=pos[j*3+2]-z; const adz=Math.abs(dz); if(adz>=thick) continue;
@@ -652,13 +654,49 @@ function selfCollide(){
   }
 }
 
+// Paper at rest sleeps: only paper that is moving, or near your hand, is simulated. Sleeping paper acts as fixed.
+function updateAwake(){
+  const { pos, prv, im, N, nx, ny, E, C, BN, ea, eb, ealive, calive, ba, bb, be1, be2 } = S;
+  if(!S.aw || S.aw.length!==N){ S.aw=new Uint8Array(N).fill(1); S.still=new Uint8Array(N); S.snap=new Float32Array(pos); S.awF=0; S.wm=new Float32Array(N); S.awQ=new Int32Array(N);
+    S.actE=new Int32Array(E); S.actC=new Int32Array(C); S.actB=new Int32Array(BN); }
+  const { aw, still, wm, awQ, actE, actC, actB } = S; const M=Math.max(lidW,lidH), FAST2=2.5e-7, CALM2=(0.003*M)*(0.003*M), SLEEP=2, snap=S.snap;
+  // every 20 frames: paper that has not really gone anywhere (just jittering in place) counts as calm
+  const win = (++S.awF % 20)===0;
+  // hands keep the paper around them awake
+  let hx=0, hy=0, hr2=0, cx=0, cy=0, cr2=0;
+  if(grab.on){ hx=grab.wx-grab.ox; hy=grab.wy-grab.oy; hr2=0.2*M*M; cx=clamp(hx,-lidW/2,lidW/2); cy=clamp(hy,-lidH/2,lidH/2); cr2=0.25*M*M; }
+  else if(ptr.down && sweepS.on){ hx=sweepS.x; hy=sweepS.y; hr2=0.05*M*M; }
+  let t=0;
+  for(let i=0;i<N;i++){ const k=i*3;
+    const dx=pos[k]-prv[k], dy=pos[k+1]-prv[k+1], dz=pos[k+2]-prv[k+2];
+    if(im[i]!==0 && dx*dx+dy*dy+dz*dz>FAST2) still[i]=0;          // really moving (falling, thrown, pulled)
+    if(win){ const sx_=pos[k]-snap[k], sy_=pos[k+1]-snap[k+1], sz_=pos[k+2]-snap[k+2];
+      if(sx_*sx_+sy_*sy_+sz_*sz_<CALM2 || im[i]===0){ if(still[i]<255) still[i]++; } else still[i]=0;
+      snap[k]=pos[k]; snap[k+1]=pos[k+1]; snap[k+2]=pos[k+2]; }
+    let a = still[i]<SLEEP && pos[k+2]>-10;
+    if(!a && hr2 && pos[k+2]>-10){ const ax=pos[k]-hx, ay=pos[k+1]-hy; a = ax*ax+ay*ay<hr2; if(!a && cr2){ const bx=pos[k]-cx, by=pos[k+1]-cy; a = bx*bx+by*by<cr2; }  if(a) still[i]=0; }   // stays awake a moment after you let go, so a released flap falls
+    aw[i]=a?1:0; if(a) awQ[t++]=i; }
+  if(grab.kin) for(const i of grab.kin.keys()){ if(!aw[i]){ aw[i]=1; awQ[t++]=i; } }
+  // moving paper wakes the paper around it (a few rings), so motion spreads naturally
+  let h=0;
+  for(let ring=0; ring<3; ring++){ const end=t;
+    for(; h<end; h++){ const i=awQ[h], gi=i%nx, gj=(i/nx)|0;
+      if(gi>0 && !aw[i-1]){ aw[i-1]=1; awQ[t++]=i-1; } if(gi<nx-1 && !aw[i+1]){ aw[i+1]=1; awQ[t++]=i+1; }
+      if(gj>0 && !aw[i-nx]){ aw[i-nx]=1; awQ[t++]=i-nx; } if(gj<ny-1 && !aw[i+nx]){ aw[i+nx]=1; awQ[t++]=i+nx; } } }
+  for(let i=0;i<N;i++) wm[i]=aw[i]?im[i]:0;
+  let n=0; for(let e=0;e<E;e++) if(ealive[e] && (aw[ea[e]]||aw[eb[e]])) actE[n++]=e; S.nE=n;
+  const cw=nx-1; n=0; for(let c=0;c<C;c++){ if(!calive[c]) continue; const A=((c/cw)|0)*nx+c%cw; if(aw[A]||aw[A+1]||aw[A+nx]||aw[A+nx+1]) actC[n++]=c; } S.nC=n;
+  n=0; for(let b=0;b<BN;b++) if(ealive[be1[b]] && ealive[be2[b]] && (aw[ba[b]]||aw[bb[b]])) actB[n++]=b; S.nB=n;
+  S.awake=t;
+}
 const GRAV = 12.5, DAMP = 0.989, DT = 1/120, ITERS = 6;
 function substep(){
-  const { pos, prv, im, N } = S; const g=GRAV*DT*DT, maxV=0.03;
+  const { pos, prv, im, N, aw } = S; const g=GRAV*DT*DT, maxV=0.03;
   const holdR=grab.on ? 0.34*Math.max(lidW,lidH) : 0, holdR2=holdR*holdR, handX=grab.wx-grab.ox, handY=grab.wy-grab.oy;
   for(let i=0;i<N;i++){
     const k=i*3;
     if(im[i]===0){ if(grab.kin && grab.kin.has(i)){ prv[k]=pos[k]; prv[k+1]=pos[k+1]; prv[k+2]=pos[k+2]; } continue; }
+    if(!aw[i]) continue;
     // attached paper that lost its support drifts down like light paper (air drag), so the sag doesn't overstretch it
     let soft = S.support && !S.support[i] && S.anchored && S.anchored[i], gf=1;
     if(holdR2){ const hx_=pos[k]-handX, hy_=pos[k+1]-handY, h2=(hx_*hx_+hy_*hy_)/holdR2;
@@ -1070,9 +1108,11 @@ function frame(now){
   sweep(dt);
   cam.yaw+=(cam.tyaw-cam.yaw)*Math.min(1,dt*3); cam.pitch+=(cam.tpitch-cam.pitch)*Math.min(1,dt*3);
   if(showcase.k>0) updateShowcase(dt); else setView(cam.yaw,cam.pitch);
+  updateAwake();
   S.breaks=0; let steps=0;
-  while(acc>=DT && steps<3){ substep(); acc-=DT; steps++; }
-  if(steps===3) acc=0;
+  const maxSteps = perf.sim>17 ? 2 : 3;      // under heavy load, ease off instead of letting the frame rate collapse
+  while(acc>=DT && steps<maxSteps){ substep(); acc-=DT; steps++; }
+  if(steps===maxSteps) acc=0;
   selfCollide(); collide();
   if(S.breaks){ Audio.rip(S.breaks); if(!firstTear){ firstTear=true; $('#hint').classList.add('gone'); } }
   if(S.dirty) rebuildTopology();
