@@ -536,7 +536,11 @@ function breakEdge(e){ if(!S.ealive[e]) return; S.ealive[e]=0; killCell(S.ecA[e]
 
 let tearMul = 1.32;
 function solveOnce(){
-  const tearR=0.4*Math.max(lidW,lidH), tearR2=tearR*tearR; const sup=S.support;
+  const tearR=0.5*Math.max(lidW,lidH), tearR2=tearR*tearR; const supD=S.supD; const gripR=0.07*Math.max(lidW,lidH), gripR2=gripR*gripR;
+  // has the paper in your hand already been torn into? (then we're peeling, not puncturing)
+  let started=false; if(grab.on && supD){ for(const i of grab.kin.keys()){ if(supD[i]<4){ started=true; break; } } }
+  // rip zone follows the hand, clamped to the box so pulling a flap far past the edge keeps tearing at the rim
+  const tearX=clamp(grab.wx-grab.ox,-lidW/2,lidW/2), tearY=clamp(grab.wy-grab.oy,-lidH/2,lidH/2);
   const { pos, im, ea, eb, rest, lim, dmg, ealive, lone, E, nx, calive, shRest, BN, ba, bb, be1, be2, brest, C } = S;
   for(let e=0;e<E;e++){
     if(!ealive[e]) continue;
@@ -547,10 +551,13 @@ function solveOnce(){
     const over = d/(r*lim[e]*(lone[e]?0.8:1)) - tearMul;
     // rips creep freely through the taut wrapping (the nice peel), but paper that is merely sagging under its own
     // weight only tears right where your hand is pulling it, so hanging flaps never shred themselves
-    if(over>0){ let can = !sup || (sup[ia] && sup[ib]);
-      if(!can && grab.on){ const gx=pos[a]-grab.wx, gy=pos[a+1]-grab.wy, g2=gx*gx+gy*gy;
-        // right at the hand anything rips (no sticky flaps); further out, only paper at lid level, so sagging paper never gets holes
-        can = g2<tearR2*0.3 || (g2<tearR2 && pos[a+2]>-0.012 && pos[b+2]>-0.012); }
+    if(over>0 && grab.on){ const za=pos[a+2], zb=pos[b+2]; let can=false;
+      const gx=pos[a]-tearX, gy=pos[a+1]-tearY, g2=gx*gx+gy*gy;
+      if(over>0.35 && supD && (supD[ia]<=1 || supD[ib]<=1)){ can=true; }                               // paper never stretches like rubber: way past its limit it always snaps
+      else if(!started){ can = g2<tearR2*0.09; }               // pinch: the first rip starts right at your hand
+      else if(g2<gripR2){ can=false; }                         // then your grip holds: the flap doesn't snap off at your fingers
+      // and the rip grows only from the tip of an existing tear (no new holes in intact or sagging paper)
+      else if(g2<tearR2 && (supD[ia]<=1 || supD[ib]<=1)) can = g2<tearR2*0.3 ? (za>-0.06 && zb>-0.06) : (za>-0.012 && zb>-0.012);
       if(can){ dmg[e]+=0.06+over*2.2; if(dmg[e]>=1){ breakEdge(e); continue; } } }
     const wa=im[ia], wb=im[ib], ws=wa+wb; if(ws===0) continue;
     let k=(d-r)/(d*ws); if(d<r) k*=0.25;           // fabric buckles rather than resisting compression
@@ -648,12 +655,15 @@ function selfCollide(){
 const GRAV = 12.5, DAMP = 0.989, DT = 1/120, ITERS = 6;
 function substep(){
   const { pos, prv, im, N } = S; const g=GRAV*DT*DT, maxV=0.03;
+  const holdR=grab.on ? 0.34*Math.max(lidW,lidH) : 0, holdR2=holdR*holdR, handX=grab.wx-grab.ox, handY=grab.wy-grab.oy;
   for(let i=0;i<N;i++){
     const k=i*3;
     if(im[i]===0){ if(grab.kin && grab.kin.has(i)){ prv[k]=pos[k]; prv[k+1]=pos[k+1]; prv[k+2]=pos[k+2]; } continue; }
     // attached paper that lost its support drifts down like light paper (air drag), so the sag doesn't overstretch it
-    const soft = S.support && !S.support[i] && S.anchored && S.anchored[i] && !(grab.kin && grab.kin.has(i));
-    let vx=(pos[k]-prv[k])*DAMP, vy=(pos[k+1]-prv[k+1])*DAMP, vz=(pos[k+2]-prv[k+2])*DAMP - (soft? g*0.5 : g);
+    let soft = S.support && !S.support[i] && S.anchored && S.anchored[i], gf=1;
+    if(holdR2){ const hx_=pos[k]-handX, hy_=pos[k+1]-handY, h2=(hx_*hx_+hy_*hy_)/holdR2;
+      if(h2<1 && pos[k+2]>-0.01){ gf=h2*h2; soft=false; } }      // a held flap is stiff paper: it stays up near your hand
+    let vx=(pos[k]-prv[k])*DAMP, vy=(pos[k+1]-prv[k+1])*DAMP, vz=(pos[k+2]-prv[k+2])*DAMP - (soft? g*0.5 : g*gf);
     if(soft){ vx*=0.985; vy*=0.985; vz*=0.985; }
     const sp=Math.hypot(vx,vy,vz); if(sp>maxV){ const f=maxV/sp; vx*=f; vy*=f; vz*=f; }
     prv[k]=pos[k]; prv[k+1]=pos[k+1]; prv[k+2]=pos[k+2];
@@ -937,6 +947,23 @@ function applyGrab(){
   for(const [i,o] of grab.kin){ const k=i*3; pos[k]=tx+o[0]; pos[k+1]=ty+o[1]; pos[k+2]=tz+o[2]; }
   const s=grab.soft; for(let q=0;q<s.length;q+=5){ const k=s[q]*3, w=s[q+4]; pos[k]+=(tx+s[q+1]-pos[k])*w; pos[k+1]+=(ty+s[q+2]-pos[k+1])*w; pos[k+2]+=(tz+s[q+3]-pos[k+2])*w; }
 }
+// dragging across loose pieces pushes them along with your hand, so you can sweep the box and the table clean
+const sweepS={ x:0, y:0, on:false };
+function sweep(dt){
+  if(!ptr.down || !S.anchored){ sweepS.on=false; return; }
+  let x,y;
+  if(grab.on){ x=grab.wx-grab.ox; y=grab.wy-grab.oy; }
+  else { let w=rayPlane(ptr.x,ptr.y,-boxH); if(Math.abs(w[0])<lidW/2 && Math.abs(w[1])<lidH/2) w=rayPlane(ptr.x,ptr.y,-innerDepth()); x=w[0]; y=w[1]; }
+  if(!sweepS.on){ sweepS.x=x; sweepS.y=y; sweepS.on=true; return; }
+  const vx=clamp(x-sweepS.x,-0.05,0.05), vy=clamp(y-sweepS.y,-0.05,0.05); sweepS.x=x; sweepS.y=y;
+  const sp=Math.hypot(vx,vy); if(sp<1e-4) return;
+  const { pos, prv, im, N, anchored } = S; const R=0.1*Math.max(lidW,lidH), R2=R*R, held=grab.kin;
+  for(let i=0;i<N;i++){ if(anchored[i] || im[i]===0 || (held && held.has(i))) continue; const k=i*3;
+    const dx=pos[k]-x, dy=pos[k+1]-y, d2=dx*dx+dy*dy; if(d2>R2) continue;
+    const w=(1-d2/R2)*0.7;
+    // take on part of the hand's motion (per substep) plus a little flutter upward
+    prv[k]+=(pos[k]-vx*0.5-prv[k])*w; prv[k+1]+=(pos[k+1]-vy*0.5-prv[k+1])*w; prv[k+2]-=sp*0.12*w; }
+}
 function localXY(e){ const r=canvas.getBoundingClientRect(); return [e.clientX-r.left, e.clientY-r.top]; }
 canvas.addEventListener('contextmenu', e=>e.preventDefault());
 canvas.addEventListener('pointerdown', e=>{
@@ -1032,13 +1059,15 @@ function frame(now){
   const dt=Math.min(0.05,(now-lastT)/1000); lastT=now; acc+=dt;
   const t0=performance.now();
   if(grab.on){
-    grab.lift=Math.min(0.09*lidW, grab.lift+dt*0.5);
+    { const M=Math.max(lidW,lidH), pulled=Math.hypot(grab.wx-grab.cx, grab.wy-grab.cy);
+      const tl=Math.min(0.26*M, 0.05*M+0.5*pulled); grab.lift+=(tl-grab.lift)*Math.min(1,dt*5); }   // the further you pull, the higher the flap peels up
     const w=rayPlane(ptr.x,ptr.y,grab.hitZ+grab.lift); const mx=2.5*dt*lidW;
     const fr = S.anchored && grab.kin && !S.anchored[grab.kin.keys().next().value] ? 0.6 : 0.3;  // loose scraps follow your hand freely
     grab.wx+=clamp((w[0]-grab.wx)*fr,-mx*(fr>0.5?4:1),mx*(fr>0.5?4:1)); grab.wy+=clamp((w[1]-grab.wy)*fr,-mx*(fr>0.5?4:1),mx*(fr>0.5?4:1));
     grab.vx=grab.wx-grab.lastWX; grab.vy=grab.wy-grab.lastWY; const sp=Math.hypot(grab.vx, grab.vy)/Math.max(dt,1e-3); grab.lastWX=grab.wx; grab.lastWY=grab.wy;
     grab.speed=lerp(grab.speed,sp,0.3); Audio.setRustle(grab.speed*0.12);
   }
+  sweep(dt);
   cam.yaw+=(cam.tyaw-cam.yaw)*Math.min(1,dt*3); cam.pitch+=(cam.tpitch-cam.pitch)*Math.min(1,dt*3);
   if(showcase.k>0) updateShowcase(dt); else setView(cam.yaw,cam.pitch);
   S.breaks=0; let steps=0;
