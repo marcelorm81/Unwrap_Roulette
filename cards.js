@@ -110,7 +110,7 @@
     g.textAlign='center'; g.fillText('= = = = = = = = = = = = = = = = =', cx, y); y+=fs*1.1;
     g.font=`400 ${Math.round(fs*1.5)}px "VT323"`; g.textAlign='left'; g.fillText('TOTAL', x0, y); g.textAlign='right'; g.fillText('$4.99', x1, y); y+=fs*1.9;
     const ff=fit(g,v.fine.toUpperCase(),s=>`400 ${s}px "VT323"`, cw, H*.1, 1.0, Math.round(fs*.9), 8); y=lines(g,ff,cx,y,1.0)+fs*.4;
-    barcode(g, x0+cw*.1, Math.min(y, H*.86), cw*.8, H*.06, hashStr(v.id), '#1d1d1d');
+    barcode(g, x0+cw*.1, y, cw*.8, Math.max(H*.02, Math.min(H*.06, H*.95-y)), hashStr(v.id), '#1d1d1d');
   };
 
   T.ticket = (g,W,H,v,img)=>{

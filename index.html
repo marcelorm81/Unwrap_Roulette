@@ -19,12 +19,19 @@
     #gl.grabbing{ cursor:grabbing; }
     
     /* Intro */
-    .intro{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(10,6,4,.25); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); transition:opacity .5s ease; }
+    .intro{ position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center; padding:0 16px max(28px, env(safe-area-inset-bottom)); transition:opacity .5s ease; pointer-events:none; }
+    .intro .intro-inner{ pointer-events:auto; }
     .intro.hidden{ opacity:0; pointer-events:none; }
-    .intro-inner{ background:#B31313; color:#000; width:clamp(260px, 36vw, 380px); aspect-ratio:1/1; padding:20px; border-radius:12px;
-      box-shadow:0 24px 60px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.06); text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:30px;
+    .intro-inner{ background:#B31313; color:#000; width:min(400px, 100%); padding:20px 22px; border-radius:14px;
+      box-shadow:0 24px 60px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.06); text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
       transform:translateY(10px) scale(.98); opacity:0; transition:opacity .45s cubic-bezier(.2,.8,.2,1), transform .45s cubic-bezier(.2,.8,.2,1); }
     .intro.show .intro-inner{ opacity:1; transform:none; }
+    .teasers{ position:absolute; inset:0; pointer-events:none; overflow:hidden; transition:opacity .6s ease; }
+    .teasers.gone{ opacity:0; }
+    .teaser{ position:absolute; width:clamp(64px, 13vmin, 140px); aspect-ratio:1; object-fit:contain; filter:drop-shadow(0 14px 18px rgba(0,0,0,.28)); opacity:0;
+      animation:teaserIn .8s cubic-bezier(.2,.8,.2,1) forwards, bob 5s ease-in-out infinite alternate; }
+    @keyframes teaserIn{ from{ opacity:0; transform:translateY(20px) scale(.7) rotate(var(--r)); } to{ opacity:1; transform:translateY(0) scale(1) rotate(var(--r)); } }
+    @keyframes bob{ from{ translate:0 -8px; } to{ translate:0 10px; } }
     .intro-title{ font-family:'Pixelify Sans',sans-serif; font-weight:700; letter-spacing:2px; font-size:clamp(30px, 5vw, 42px); line-height:.82; }
     .intro-btn{ background:#111; color:#F03B2C; border:none; padding:12px 22px; border-radius:8px; font-family:'Pixelify Sans',sans-serif; font-weight:700; letter-spacing:1px; font-size:15px; cursor:pointer; transition:transform .1s ease, background .2s ease, color .2s ease; }
     .intro-btn:hover{ background:#FFD700; color:#000; }
@@ -47,8 +54,27 @@
     .sep{ width:1px; height:20px; background:rgba(255,255,255,.14); margin:0 2px; }
     .bar #new.pulse{ animation:pulse 1.4s ease-in-out infinite; }
     @keyframes pulse{ 0%,100%{ background:rgba(255,215,0,0);} 50%{ background:rgba(255,215,0,.35);} }
-    .hint{ position:absolute; left:50%; top:max(18px, env(safe-area-inset-top)); transform:translateX(-50%); font:13px/1.3 'Courier Prime', monospace; color:#fff; background:rgba(18,12,10,.45); padding:8px 14px; border-radius:20px; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); transition:opacity .6s ease; pointer-events:none; white-space:nowrap; }
+    .hint{ position:absolute; left:50%; top:max(18px, env(safe-area-inset-top)); transform:translateX(-50%); font:13px/1.3 'Courier Prime', monospace; color:#fff; background:rgba(18,12,10,.45); padding:8px 14px; border-radius:20px; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); transition:opacity .6s ease; pointer-events:none; max-width:calc(100vw - 32px); text-align:center; white-space:normal; }
     .hint.gone{ opacity:0; }
+    .bar #send{ background:#F03B2C; color:#fff; }
+    .bar #send:hover{ background:#ff5446; }
+    .bar #send.pulse{ animation:pulse2 1.4s ease-in-out infinite; }
+    @keyframes pulse2{ 0%,100%{ box-shadow:0 0 0 0 rgba(240,59,44,.0);} 50%{ box-shadow:0 0 0 6px rgba(240,59,44,.45);} }
+    .sheet{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(10,6,4,.35); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); opacity:0; pointer-events:none; transition:opacity .25s ease; }
+    .sheet.open{ opacity:1; pointer-events:auto; }
+    .sheet-card{ width:min(340px, calc(100vw - 32px)); background:#FFF6E5; border-radius:14px; padding:20px; box-shadow:0 24px 60px rgba(0,0,0,.4); font-family:'Courier Prime', monospace; color:#111; transform:translateY(8px) rotate(-1deg); transition:transform .25s ease; }
+    .sheet.open .sheet-card{ transform:none; }
+    .sheet-card h3{ margin:0 0 4px; font:700 24px/1 'Pixelify Sans', sans-serif; letter-spacing:1px; }
+    .sheet-card p{ margin:0 0 14px; font-size:13px; opacity:.75; }
+    .sheet-card label{ display:block; font-size:12px; font-weight:700; margin:10px 0 4px; letter-spacing:1px; }
+    .sheet-card input{ width:100%; font:16px 'Courier Prime', monospace; padding:10px 12px; border:2px solid #111; border-radius:8px; background:#fff; outline:none; }
+    .sheet-card input:focus{ border-color:#F03B2C; }
+    .sheet-row{ display:flex; gap:8px; margin-top:16px; }
+    .sheet-row button{ flex:1; font:700 15px 'Pixelify Sans', sans-serif; letter-spacing:1px; border:0; border-radius:8px; padding:12px; cursor:pointer; }
+    .sheet-row .go{ background:#F03B2C; color:#fff; } .sheet-row .go:hover{ background:#111; }
+    .sheet-row .cancel{ background:transparent; border:2px solid #111; }
+    .sheet-done{ margin-top:12px; font-size:13px; min-height:1.2em; color:#1b7a3a; font-weight:700; word-break:break-all; }
+    .intro-from{ font:700 13px/1.4 'Courier Prime', monospace; color:#111; margin:0; }
     .nogl{ position:absolute; inset:0; display:grid; place-items:center; color:#fff; font:16px 'Courier Prime', monospace; text-align:center; padding:24px; }
     @media (max-width:560px){
       .bar span.l{ display:none; }
@@ -58,6 +84,19 @@
     }
   </style>
   <!-- Credit: who made this. Nothing visible changes. -->
+  <meta name="description" content="Someone sent you a gift. Grab the fabric, rip it open, find out what's inside (it's probably terrible).">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Unwrap Roulette">
+  <meta property="og:title" content="Someone sent you a gift 🎁">
+  <meta property="og:description" content="Rip it open to find out what's inside. It's probably terrible.">
+  <meta property="og:image" content="https://unwrap-roulette.vercel.app/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="A gingham-wrapped gift box ripped open to reveal an expired coupon, next to the words Someone sent you a gift (it's probably terrible)">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Someone sent you a gift 🎁">
+  <meta name="twitter:description" content="Rip it open to find out what's inside. It's probably terrible.">
+  <meta name="twitter:image" content="https://unwrap-roulette.vercel.app/og.jpg">
   <meta name="author" content="Marcelo Reis Melo">
   <link rel="author" href="https://marceloreismelo.com/">
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebApplication", "name": "Unwrap Roulette", "url": "https://unwrap-roulette.vercel.app/", "isAccessibleForFree": true, "creator": {"@type": "Person", "@id": "https://marceloreismelo.com/#person", "name": "Marcelo Reis Melo", "url": "https://marceloreismelo.com/", "jobTitle": "Executive Creative Director"}, "author": {"@id": "https://marceloreismelo.com/#person"}, "applicationCategory": "Experiment"}</script>
@@ -65,19 +104,32 @@
 <body>
 <div id="stage">
   <canvas id="gl"></canvas>
-  <div class="hint" id="hint">Grab the fabric and keep dragging to rip it off</div>
+  <div class="hint gone" id="hint">Grab the fabric and keep dragging to rip it off</div>
   <div class="bar off" id="bar">
     <select id="pattern" title="Wrapping pattern"></select>
     <button id="new" title="New gift (R)">↻<span class="l"> New gift</span></button>
+    <button id="send" title="Send this gift to someone">🎁<span class="l"> Send</span></button>
     <div class="sep"></div>
     <button id="snd" title="Sound (M)">♪</button>
     <button id="save" title="Save PNG (⌘/Ctrl+S)">⤓</button>
   </div>
+  <div id="sheet" class="sheet" aria-hidden="true">
+    <form class="sheet-card" id="sheet-form" autocomplete="off">
+      <h3>SEND THIS GIFT</h3>
+      <p>They get this exact box. What's inside stays a surprise (sorry).</p>
+      <label for="to">TO</label><input id="to" maxlength="24" placeholder="Their name">
+      <label for="from">FROM</label><input id="from" maxlength="24" placeholder="Your name">
+      <div class="sheet-row"><button type="button" class="cancel" id="sheet-cancel">NAH</button><button type="submit" class="go">GET LINK</button></div>
+      <div class="sheet-done" id="sheet-done"></div>
+    </form>
+  </div>
+  <div id="teasers" class="teasers"></div>
   <div id="intro" class="intro">
     <div class="intro-inner">
+      <div class="intro-from" id="intro-from" hidden></div>
       <div class="intro-title">UNWRAP<br>ROULETTE</div>
       <button id="start-btn" class="intro-btn">START</button>
-      <div class="intro-note">The gift? Who cares.<br>The unwrap? That’s the fun part.<br><strong>Grab, drag, rip. Repeat.</strong></div>
+      <div class="intro-note" id="intro-note">The gift? Who cares.<br>The unwrap? That’s the fun part.<br><strong>Grab, drag, rip. Repeat.</strong></div>
     </div>
   </div>
 </div>
@@ -98,6 +150,7 @@ if(!gl){
   throw new Error('WebGL2 unavailable');
 }
 const ANISO = gl.getExtension('EXT_texture_filter_anisotropic');
+gl.vertexAttrib1f(3, 1.0);   // static meshes are fully intact
 
 // ---------------------------------------------------------------- presents
 const PRESENTS = window.VOUCHERS;   // fake brands, card templates and packshots live in vouchers.js / cards.js
@@ -252,15 +305,16 @@ function attrib(loc, buf, size){ gl.bindBuffer(gl.ARRAY_BUFFER,buf); gl.enableVe
 
 // ---------------------------------------------------------------- shaders
 const VS = `#version 300 es
-layout(location=0) in vec3 aPos; layout(location=1) in vec3 aNor; layout(location=2) in vec2 aUV;
-uniform mat4 uVP; out vec3 vPos; out vec3 vNor; out vec2 vUV;
-void main(){ vPos=aPos; vNor=aNor; vUV=aUV; gl_Position=uVP*vec4(aPos,1.0); }`;
+layout(location=0) in vec3 aPos; layout(location=1) in vec3 aNor; layout(location=2) in vec2 aUV; layout(location=3) in float aKeep;
+uniform mat4 uVP; out vec3 vPos; out vec3 vNor; out vec2 vUV; out float vKeep;
+void main(){ vPos=aPos; vNor=aNor; vUV=aUV; vKeep=aKeep; gl_Position=uVP*vec4(aPos,1.0); }`;
 
 const COMMON = `#version 300 es
 precision highp float; precision highp sampler2DShadow;
 uniform sampler2DShadow uShadow; uniform mat4 uLightVP; uniform float uTexel; uniform vec3 uLightDir; uniform vec3 uEye;
 out vec4 outColor;
 float hash12(vec2 p){ vec3 p3=fract(vec3(p.xyx)*.1031); p3+=dot(p3,p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z); }
+float vnoise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(hash12(i),hash12(i+vec2(1,0)),f.x), mix(hash12(i+vec2(0,1)),hash12(i+vec2(1,1)),f.x), f.y); }
 float shadowAt(vec3 p, vec3 n){
   vec4 ls=uLightVP*vec4(p+n*0.003,1.0); vec3 c=ls.xyz/ls.w*0.5+0.5;
   if(c.x<0.0||c.x>1.0||c.y<0.0||c.y>1.0) return 1.0;
@@ -273,11 +327,16 @@ vec3 keyCol(){ return vec3(1.0,0.95,0.88); }
 `;
 
 const FABRIC_FS = COMMON + `
-in vec3 vPos; in vec3 vNor; in vec2 vUV;
+in vec3 vPos; in vec3 vNor; in vec2 vUV; in float vKeep;
 uniform sampler2D uPat; uniform vec2 uLid; uniform float uTile; uniform vec3 uRibbon; uniform float uRibW;
 uniform float uSheen, uVelvet, uExp, uThreads;
 void main(){
   vec2 p = vUV*uLid;
+  // smooth, organic tear line cut through the border cells (no more grid staircase)
+  float tn = vnoise(p*38.0)*0.6 + vnoise(p*140.0)*0.3 + vnoise(p*420.0)*0.1;
+  float keep = vKeep + (tn-0.5)*0.42;
+  if(keep < 0.6) discard;
+  float rim = 1.0 - smoothstep(0.6, 0.69 + 0.04*vnoise(p*900.0), keep);
   vec3 N = normalize(vNor); bool front = gl_FrontFacing; if(!front) N=-N;
   vec3 dp1=dFdx(vPos), dp2=dFdy(vPos); vec2 du1=dFdx(p), du2=dFdy(p);
   vec3 T = dp1*du2.y - dp2*du1.y; if(dot(T,T)<1e-14) T=vec3(1,0,0);
@@ -303,6 +362,9 @@ void main(){
   base *= mix(1.0, 0.94+0.1*thr, fade);
   base = mix(base, uRibbon*(0.94+0.1*hash12(floor(w*0.25))), rib);
   if(!front) base = mix(base, vec3(0.9,0.88,0.84), 0.38);   // printed fabric: the pattern bleeds through to the back
+  // torn edge: the white fibrous core of the paper/fabric shows along the rip
+  vec3 core = vec3(0.95,0.93,0.88) * (0.9 + 0.12*vnoise(p*1600.0));
+  base = mix(base, core, rim);
   // light
   vec3 L=normalize(uLightDir), V=normalize(uEye-vPos), H=normalize(L+V);
   float sh = shadowAt(vPos, N);
@@ -457,13 +519,14 @@ function buildCloth(){
   const bp=vbo(pos,gl.DYNAMIC_DRAW); attrib(0,bp,3);
   const bn=vbo(nor,gl.DYNAMIC_DRAW); attrib(1,bn,3);
   const bu=vbo(uv); attrib(2,bu,2);
+  const bk=vbo(new Float32Array(N).fill(1),gl.DYNAMIC_DRAW); attrib(3,bk,1);
   const bi=gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,bi);
   gl.bindVertexArray(null);
   const fvao=gl.createVertexArray(); gl.bindVertexArray(fvao);
   const fp=vbo(new Float32Array(6),gl.DYNAMIC_DRAW); attrib(0,fp,3);
   const fu=vbo(new Float32Array(4),gl.DYNAMIC_DRAW); attrib(2,fu,2);
   gl.disableVertexAttribArray(1); gl.bindVertexArray(null);
-  mesh.cloth = { vao, bp, bn, bu, bi, count:0, fvao, fp, fu, fcount:0, bufs:[bp,bn,bu,bi,fp,fu] };
+  mesh.cloth = { vao, bp, bn, bu, bi, bk, count:0, fvao, fp, fu, fcount:0, bufs:[bp,bn,bu,bi,fp,fu,bk] };
 }
 
 function killCell(c){ if(c<0||!S.calive[c]) return; S.calive[c]=0; S.dead++; S.dirty=true; }
@@ -620,7 +683,13 @@ function rebuildTopology(){
       for(let f=0;f<2;f++) fib.push(e, cell, rr(), 0.15+rr()*0.5, (rr()-0.5)*0.7);
     }
   }
-  S.fibers=fib; S.threadE=thr; S.fiberN=fib.length/5;
+  S.fibers=[]; S.threadE=[]; S.fiberN=0; fib.length=0; thr.length=0;
+  // per-vertex intactness = share of the surrounding cells that still exist
+  const keep=new Float32Array(S.N); const ny=S.ny;
+  for(let i=0;i<S.N;i++){ const gi=i%nx, gj=(i/nx)|0; let a=0,t=0;
+    for(const [ci,cj] of [[gi-1,gj-1],[gi,gj-1],[gi-1,gj],[gi,gj]]) if(ci>=0&&cj>=0&&ci<cw&&cj<ny-1){ t++; if(calive[cj*cw+ci]) a++; }
+    keep[i]=t?a/t:0; }
+  gl.bindBuffer(gl.ARRAY_BUFFER, mesh.cloth.bk); gl.bufferSubData(gl.ARRAY_BUFFER, 0, keep);
   const verts=(S.fiberN+thr.length)*2;
   S.fpos=new Float32Array(verts*3); S.fuv=new Float32Array(verts*2);
   S.dirty=false;
@@ -721,16 +790,16 @@ function makeVAO(p,n,u){ const vao=gl.createVertexArray(); gl.bindVertexArray(va
 
 // ---------------------------------------------------------------- camera
 const FOV = 28*Math.PI/180, TILT = 0.30;
-const cam = { D:3, ty:0, proj:null, yaw:0, pitch:0, tyaw:0, tpitch:0 };
-function setView(yaw, pitch){
+const cam = { D:3, ty:0, proj:null, yaw:0, pitch:0, tyaw:0, tpitch:0, fill:1 };
+function setView(yaw, pitch, dmul=1){
   const t=TILT+pitch, T=[0,cam.ty,-boxH*0.5];
-  eye=[T[0]+cam.D*Math.sin(t)*Math.sin(yaw), T[1]-cam.D*Math.sin(t)*Math.cos(yaw), T[2]+cam.D*Math.cos(t)];
+  const D=cam.D*dmul; eye=[T[0]+D*Math.sin(t)*Math.sin(yaw), T[1]-D*Math.sin(t)*Math.cos(yaw), T[2]+D*Math.cos(t)];
   VP=M4.mul(cam.proj, M4.lookAt(eye,T,[0,1,0])); invVP=M4.inv(VP);
 }
 function fitCamera(){
   const a=cssW/cssH; const hx=lidW/2, hy=lidH/2;
   const corners=[]; for(const x of [-hx,hx]) for(const y of [-hy,hy]) for(const z of [0,-boxH]) corners.push([x,y,z]);
-  const mobile = cssW<560; const top = mobile?0.80:0.84, bot = mobile?-0.70:-0.74, side = mobile?0.94:0.86;
+  const mobile = cssW<560, f=cam.fill||1; const top = (mobile?0.80:0.84)*f+(1-f)*0.06, bot = (mobile?-0.70:-0.74)*f+(1-f)*0.06, side = (mobile?0.94:0.86)*f;
   let D=4, ty=0; const proj=M4.persp(FOV,a,0.05,40);
   for(let it=0;it<10;it++){
     eye=[0, ty-D*Math.sin(TILT), D*Math.cos(TILT)-boxH*0.5];
@@ -764,12 +833,28 @@ function applyPattern(p){
   patTex = texture(p.draw(), {repeat:true}, patTex);
   document.documentElement.style.setProperty('--bg', p.bg);
 }
-function newGift(keepPattern){
+let gift=null, sharedGift=null, baseAspect=1;
+(function readShare(){
+  const q=new URLSearchParams(location.search); const v=q.get('g');
+  if(v && PRESENTS.some(x=>x.id===v)){
+    const clean=t=>(t||'').replace(/[\u0000-\u001f<>]/g,'').trim().slice(0,24);
+    sharedGift={ v, p: PATTERNS.some(x=>x.id===q.get('p')) ? q.get('p') : PATTERNS[0].id, s: (parseInt(q.get('s'),10)>>>0)||1, to:clean(q.get('to')), from:clean(q.get('from')) };
+  }
+})();
+function randomGift(){
+  let v; do{ v=PRESENTS[(Math.random()*PRESENTS.length)|0].id; }while(gift && v===gift.v);
+  return { v, p: choosePattern().id, s: (Math.random()*4294967295)>>>0 };
+}
+function newGift(sameGift){
   releaseGrab();
   resizeCanvas();
-  const aspect=lidAspectFor(cssW,cssH); lidW=1; lidH=1/aspect; boxH=0.24*Math.min(lidW,lidH);
-  let np; do{ np=PRESENTS[(Math.random()*PRESENTS.length)|0]; }while(np===present); present=np;
-  if(!keepPattern || !patTex) applyPattern(choosePattern());
+  if(!sameGift || !gift){ gift = randomGift(); if(location.search) history.replaceState(null,'',location.pathname); }
+  // every gift gets its own box: proportions, depth and how big it sits on the table
+  const R=mulberry32(gift.s); baseAspect=lidAspectFor(cssW,cssH);
+  const aspect=clamp(lidAspectFor(cssW,cssH)*(0.72+0.6*R()), 0.55, 1.8);
+  lidW=1; lidH=1/aspect; boxH=(0.13+0.22*R())*Math.min(lidW,lidH); cam.fill=0.7+0.3*R();
+  present=PRESENTS.find(x=>x.id===gift.v)||PRESENTS[0];
+  const pat=PATTERNS.find(x=>x.id===gift.p)||PATTERNS[0]; if(pat!==pattern || !patTex) applyPattern(pat);
   lidTex = texture(lidCanvas(lidW,lidH,null,null), {repeat:false}, lidTex);
   const v=present, token=++giftToken, lw=lidW, lh=lidH;
   Promise.all([loadPackshot(v.id), window.loadCardFonts ? loadCardFonts(v.tpl) : null]).then(([img])=>{
@@ -777,7 +862,7 @@ function newGift(keepPattern){
     lidTex = texture(lidCanvas(lw,lh,v,img), {repeat:false}, lidTex);
   });
   buildStatic(); buildCloth(); fitCamera();
-  torn=false; $('#new').classList.remove('pulse');
+  torn=false; $('#new').classList.remove('pulse'); $('#send').classList.remove('pulse');
 }
 
 // ---------------------------------------------------------------- interaction
@@ -827,6 +912,7 @@ function applyGrab(){
 function localXY(e){ const r=canvas.getBoundingClientRect(); return [e.clientX-r.left, e.clientY-r.top]; }
 canvas.addEventListener('contextmenu', e=>e.preventDefault());
 canvas.addEventListener('pointerdown', e=>{
+  if(showcase.k>0 && !showcase.leaving) return;
   try{ canvas.setPointerCapture(e.pointerId); }catch(_){}
   ptr.active.set(e.pointerId, localXY(e));
   const [x,y]=localXY(e); Audio.unlock();
@@ -901,7 +987,7 @@ function render(){
   gl.bindVertexArray(mesh.walls.vao); gl.drawArrays(gl.TRIANGLES,0,mesh.walls.count);
 
   gl.useProgram(P.fabric.p); bindCommon(P.fabric); fabricUniforms(P.fabric);
-  gl.enable(gl.CULL_FACE); gl.bindVertexArray(mesh.sides.vao); gl.drawArrays(gl.TRIANGLES,0,mesh.sides.count); gl.disable(gl.CULL_FACE);
+  gl.bindVertexArray(mesh.sides.vao); gl.drawArrays(gl.TRIANGLES,0,mesh.sides.count);
   gl.bindVertexArray(mesh.cloth.vao); gl.drawElements(gl.TRIANGLES, mesh.cloth.count, gl.UNSIGNED_INT, 0);
 
   if(mesh.cloth.fcount){ gl.useProgram(P.fiber.p); bindCommon(P.fiber); fabricUniforms(P.fiber);
@@ -925,7 +1011,13 @@ function frame(now){
     grab.vx=grab.wx-grab.lastWX; grab.vy=grab.wy-grab.lastWY; const sp=Math.hypot(grab.vx, grab.vy)/Math.max(dt,1e-3); grab.lastWX=grab.wx; grab.lastWY=grab.wy;
     grab.speed=lerp(grab.speed,sp,0.3); Audio.setRustle(grab.speed*0.12);
   }
-  cam.yaw+=(cam.tyaw-cam.yaw)*Math.min(1,dt*3); cam.pitch+=(cam.tpitch-cam.pitch)*Math.min(1,dt*3); setView(cam.yaw,cam.pitch);
+  cam.yaw+=(cam.tyaw-cam.yaw)*Math.min(1,dt*3); cam.pitch+=(cam.tpitch-cam.pitch)*Math.min(1,dt*3);
+  if(showcase.k>0){
+    // turntable: the camera orbits the wrapped box; on START it eases back into the play view
+    if(showcase.leaving){ showcase.k=Math.max(0, showcase.k-dt/1.4); } else showcase.spin+=dt*0.32;
+    const e=showcase.k*showcase.k*(3-2*showcase.k);
+    setView(lerp(cam.yaw, showcase.spin, e), lerp(cam.pitch, 0.6, e), lerp(1, 1.3, e));
+  } else setView(cam.yaw,cam.pitch);
   S.breaks=0; let steps=0;
   while(acc>=DT && steps<3){ substep(); acc-=DT; steps++; }
   if(steps===3) acc=0;
@@ -942,7 +1034,7 @@ function frame(now){
   }
   computeNormals(); updateFibers();
   const m=mesh.cloth; gl.bindBuffer(gl.ARRAY_BUFFER,m.bp); gl.bufferSubData(gl.ARRAY_BUFFER,0,S.pos); gl.bindBuffer(gl.ARRAY_BUFFER,m.bn); gl.bufferSubData(gl.ARRAY_BUFFER,0,S.nor);
-  if(!torn && S.dead > S.C*0.33){ torn=true; $('#new').classList.add('pulse'); }
+  if(!torn && S.dead > S.C*0.33){ torn=true; $(sharedGift && gift && gift.v===sharedGift.v ? '#send' : '#new').classList.add('pulse'); }
   perf.sim=lerp(perf.sim, performance.now()-t0, 0.05);
   render();
   requestAnimationFrame(frame);
@@ -958,22 +1050,61 @@ function exportPNG(){ render(); const a=document.createElement('a'); a.download=
 window.addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();
   if((k==='s')&&(e.metaKey||e.ctrlKey)){ e.preventDefault(); exportPNG(); return; }
-  if(e.target.tagName==='SELECT') return;
+  if(e.target.tagName==='SELECT' || e.target.tagName==='INPUT') return;
   if(k==='r') newGift(false);
   else if(k==='m'){ Audio.unlock(); Audio.toggle(); } else if(k==='h') $('#bar').classList.toggle('off');
 });
 let rT=0; window.addEventListener('resize',()=>{ clearTimeout(rT); rT=setTimeout(()=>{
-  const prev=lidW/lidH; resizeCanvas(); const a=lidAspectFor(cssW,cssH);
-  if(Math.abs(a-prev)/prev>0.1) newGift(true); else fitCamera();
+  resizeCanvas(); const a=lidAspectFor(cssW,cssH);
+  if(Math.abs(a-baseAspect)/baseAspect>0.1) newGift(true); else fitCamera();
 },120); });
 
 const intro=$('#intro');
-$('#start-btn').onclick=()=>{ Audio.unlock(); intro.classList.remove('show'); intro.classList.add('hidden'); $('#bar').classList.remove('off'); };
+// ---------------------------------------------------------------- share a gift
+const sheet=$('#sheet');
+function giftLink(to, from){
+  const q=new URLSearchParams({ g:gift.v, p:gift.p, s:String(gift.s) }); if(to) q.set('to',to); if(from) q.set('from',from);
+  return location.origin + location.pathname + '?' + q.toString();
+}
+$('#send').onclick=()=>{ $('#sheet-done').textContent=''; sheet.classList.add('open'); sheet.setAttribute('aria-hidden','false'); setTimeout(()=>$('#to').focus(),50); };
+const closeSheet=()=>{ sheet.classList.remove('open'); sheet.setAttribute('aria-hidden','true'); };
+$('#sheet-cancel').onclick=closeSheet;
+sheet.addEventListener('pointerdown',e=>{ if(e.target===sheet) closeSheet(); });
+$('#sheet-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const to=$('#to').value.trim().slice(0,24), from=$('#from').value.trim().slice(0,24);
+  const url=giftLink(to, from);
+  const text=`${to?to+', ':''}${from||'Someone'} sent you a gift. Unwrap it (it's probably terrible):`;
+  try{
+    if(navigator.share && matchMedia('(pointer:coarse)').matches){ await navigator.share({ title:'Unwrap Roulette', text, url }); closeSheet(); return; }
+    await navigator.clipboard.writeText(url); $('#sheet-done').textContent='Link copied! Paste it to them.';
+  }catch(_){ $('#sheet-done').textContent=url; }
+});
+if(sharedGift){
+  const who = sharedGift.from || 'Someone';
+  $('#intro-from').textContent = (sharedGift.to ? sharedGift.to+', ' : '') + who + ' sent you a gift.';
+  $('#intro-from').hidden=false;
+  $('#start-btn').textContent='UNWRAP IT';
+  $('#intro-note').textContent='No refunds. No receipts. Grab the fabric and rip.';
+}
+const showcase={ k:1, spin:-0.6, leaving:false };
+$('#start-btn').onclick=()=>{ Audio.unlock(); intro.classList.remove('show'); intro.classList.add('hidden'); $('#teasers').classList.add('gone');
+  // swoop back the short way round
+  showcase.spin = Math.atan2(Math.sin(showcase.spin), Math.cos(showcase.spin)); showcase.leaving=true;
+  setTimeout(()=>{ $('#bar').classList.remove('off'); if(!firstTear) $('#hint').classList.remove('gone'); }, 900); };
+// a few packshots float around the box as teasers (never the real prize)
+(function teasers(){
+  const box=$('#teasers'), pool=PRESENTS.filter(v=>!sharedGift || v.id!==sharedGift.v).sort(()=>Math.random()-.5).slice(0,6);
+  const spots=[[6,10],[78,8],[2,42],[84,38],[14,70],[76,66]];
+  pool.forEach((v,i)=>{ const im=new Image(); im.src=`assets/packshots/${v.id}.png`; im.alt=''; im.className='teaser';
+    im.style.left=spots[i][0]+'%'; im.style.top=spots[i][1]+'%'; im.style.setProperty('--r', ((Math.random()-.5)*30).toFixed(1)+'deg');
+    im.style.animationDelay=`${.3+i*.12}s, ${i*.7}s`; box.appendChild(im); });
+})();
 
 // ---------------------------------------------------------------- boot
 (async function boot(){
   try{ await Promise.all([document.fonts.load('700 80px "Pixelify Sans"'), document.fonts.load('700 40px "Courier Prime"')]); }catch(_){}
-  try{ newGift(false); }catch(e){ window.__bootErr=String(e.stack||e); console.error('boot '+window.__bootErr); }
+  try{ if(sharedGift){ gift={v:sharedGift.v,p:sharedGift.p,s:sharedGift.s}; newGift(true); } else newGift(false); }catch(e){ window.__bootErr=String(e.stack||e); console.error('boot '+window.__bootErr); }
   requestAnimationFrame(t=>{ lastT=t; requestAnimationFrame(frame); });
   requestAnimationFrame(()=> intro.classList.add('show'));
   window.__unwrap = { get S(){ return S; }, perf, newGift, get grab(){ return grab; } };
