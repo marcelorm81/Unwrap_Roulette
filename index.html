@@ -21,7 +21,7 @@
     /* Intro */
     .intro{ position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center; padding:0 16px max(28px, env(safe-area-inset-bottom)); transition:opacity .5s ease; pointer-events:none; }
     .intro .intro-inner{ pointer-events:auto; }
-    .intro.hidden{ opacity:0; pointer-events:none; }
+    .intro.hidden, .intro.hidden .intro-inner{ opacity:0; pointer-events:none; visibility:hidden; transition:opacity .5s ease, visibility 0s .5s; }
     .intro-inner{ background:#B31313; color:#000; width:min(400px, 100%); padding:20px 22px; border-radius:14px;
       box-shadow:0 24px 60px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.06); text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
       transform:translateY(10px) scale(.98); opacity:0; transition:opacity .45s cubic-bezier(.2,.8,.2,1), transform .45s cubic-bezier(.2,.8,.2,1); }
@@ -536,6 +536,7 @@ function breakEdge(e){ if(!S.ealive[e]) return; S.ealive[e]=0; killCell(S.ecA[e]
 
 let tearMul = 1.32;
 function solveOnce(){
+  const tearR=0.4*Math.max(lidW,lidH), tearR2=tearR*tearR; const sup=S.support;
   const { pos, im, ea, eb, rest, lim, dmg, ealive, lone, E, nx, calive, shRest, BN, ba, bb, be1, be2, brest, C } = S;
   for(let e=0;e<E;e++){
     if(!ealive[e]) continue;
@@ -544,7 +545,11 @@ function solveOnce(){
     const d=Math.sqrt(dx*dx+dy*dy+dz*dz)+1e-9, r=rest[e];
     // progressive failure: threads accumulate damage while overstretched, so rips creep and propagate
     const over = d/(r*lim[e]*(lone[e]?0.8:1)) - tearMul;
-    if(over>0){ dmg[e]+=0.06+over*2.2; if(dmg[e]>=1){ breakEdge(e); continue; } }
+    // rips creep freely through the taut wrapping (the nice peel), but paper that is merely sagging under its own
+    // weight only tears right where your hand is pulling it, so hanging flaps never shred themselves
+    if(over>0){ let can = !sup || (sup[ia] && sup[ib]);
+      if(!can && grab.on && pos[a+2]>-0.012 && pos[b+2]>-0.012){ const gx=pos[a]-grab.wx, gy=pos[a+1]-grab.wy; can = gx*gx+gy*gy<tearR2; }   // sagging paper (below the lid) never tears
+      if(can){ dmg[e]+=0.06+over*2.2; if(dmg[e]>=1){ breakEdge(e); continue; } } }
     const wa=im[ia], wb=im[ib], ws=wa+wb; if(ws===0) continue;
     let k=(d-r)/(d*ws); if(d<r) k*=0.25;           // fabric buckles rather than resisting compression
     pos[a]-=dx*k*wa; pos[a+1]-=dy*k*wa; pos[a+2]-=dz*k*wa;
@@ -584,13 +589,15 @@ function collide(){
     const inside = Math.abs(x)<hx && Math.abs(y)<hy;
     let contact=false;
     if(!anchored || anchored[i]){
-      // still part of the wrapping: held up by the rim like a drum skin
+      // still attached: intact wrapping is held taut like a drum skin, but paper near a tear has nothing
+      // holding it up, so torn flaps and narrow strips sag into the box, hanging from where they're still attached
       if(inside && z<ZC){
-        const dTop=ZC-z, dX=hx-Math.abs(x), dY=hy-Math.abs(y);
-        if(z>-0.02 || (dTop<=dX && dTop<=dY)){ z=ZC; contact=true; }
-        else if(dX<dY) x=Math.sign(x)*(hx+0.002); else y=Math.sign(y)*(hy+0.002);
+        const wasIn = Math.abs(prv[k])<hx && Math.abs(prv[k+1])<hy;
+        if((!S.support || S.support[i]) && z>-0.03){ z=ZC; contact=true; }
+        else if(wasIn){ x=clamp(x,-hx+w,hx-w); y=clamp(y,-hy+w,hy-w); if(z<-D+ZC){ z=-D+ZC; contact=true; } }
+        else { const dX=hx-Math.abs(x), dY=hy-Math.abs(y); if(dX<dY) x=Math.sign(x)*(hx+0.002); else y=Math.sign(y)*(hy+0.002); }
       }
-      if(z<floorOut){ z=floorOut; contact=true; }
+      if(!inside && z<floorOut){ z=floorOut; contact=true; }
     } else if(z<0){
       // torn-free scrap: falls into the open box, or onto the table if it went over the side
       const wasIn = Math.abs(prv[k])<hx && Math.abs(prv[k+1])<hy;
@@ -636,13 +643,16 @@ function selfCollide(){
   }
 }
 
-const GRAV = 16, DAMP = 0.992, DT = 1/120, ITERS = 6;
+const GRAV = 12.5, DAMP = 0.989, DT = 1/120, ITERS = 6;
 function substep(){
   const { pos, prv, im, N } = S; const g=GRAV*DT*DT, maxV=0.03;
   for(let i=0;i<N;i++){
     const k=i*3;
     if(im[i]===0){ if(grab.kin && grab.kin.has(i)){ prv[k]=pos[k]; prv[k+1]=pos[k+1]; prv[k+2]=pos[k+2]; } continue; }
-    let vx=(pos[k]-prv[k])*DAMP, vy=(pos[k+1]-prv[k+1])*DAMP, vz=(pos[k+2]-prv[k+2])*DAMP - g;
+    // attached paper that lost its support drifts down like light paper (air drag), so the sag doesn't overstretch it
+    const soft = S.support && !S.support[i] && S.anchored && S.anchored[i] && !(grab.kin && grab.kin.has(i));
+    let vx=(pos[k]-prv[k])*DAMP, vy=(pos[k+1]-prv[k+1])*DAMP, vz=(pos[k+2]-prv[k+2])*DAMP - (soft? g*0.5 : g);
+    if(soft){ vx*=0.985; vy*=0.985; vz*=0.985; }
     const sp=Math.hypot(vx,vy,vz); if(sp>maxV){ const f=maxV/sp; vx*=f; vy*=f; vz*=f; }
     prv[k]=pos[k]; prv[k+1]=pos[k+1]; prv[k+2]=pos[k+2];
     pos[k]+=vx; pos[k+1]+=vy; pos[k+2]+=vz;
@@ -710,6 +720,20 @@ function computeAnchored(){
     if(gj<ny-1){ n=i+nx; e=HN+gj*nx+gi; if(!A[n]&&ealive[e]){ A[n]=1; q[t++]=n; } }
     if(gj>0){ n=i-nx; e=HN+(gj-1)*nx+gi; if(!A[n]&&ealive[e]){ A[n]=1; q[t++]=n; } } }
   removeFluff();
+  computeSupport();
+}
+// how far each point is from the nearest tear (grid steps); only well-intact paper stays taut
+function computeSupport(){
+  const { nx, ny, N, calive } = S; const cw=nx-1, SUP=4;
+  const d = S.supD && S.supD.length===N ? S.supD : (S.supD=new Uint8Array(N));
+  const sup = S.support && S.support.length===N ? S.support : (S.support=new Uint8Array(N));
+  const q = S.bfsQ; let h=0,t=0;
+  for(let i=0;i<N;i++){ const gi=i%nx, gj=(i/nx)|0; let torn=false;
+    for(const [a,b] of [[gi-1,gj-1],[gi,gj-1],[gi-1,gj],[gi,gj]]) if(a>=0&&b>=0&&a<cw&&b<ny-1 && !calive[b*cw+a]){ torn=true; break; }
+    if(torn){ d[i]=0; q[t++]=i; } else d[i]=255; }
+  while(h<t){ const i=q[h++], gi=i%nx, gj=(i/nx)|0, nd=d[i]+1; if(nd>=SUP) continue;
+    for(const n of [gi>0?i-1:-1, gi<nx-1?i+1:-1, gj>0?i-nx:-1, gj<ny-1?i+nx:-1]) if(n>=0 && d[n]>nd){ d[n]=nd; q[t++]=n; } }
+  for(let i=0;i<N;i++) sup[i] = d[i]>=SUP ? 1 : 0;
 }
 // loose bits smaller than a postage stamp vanish instead of littering the box
 function removeFluff(){
