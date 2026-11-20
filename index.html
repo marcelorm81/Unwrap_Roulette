@@ -548,7 +548,9 @@ function solveOnce(){
     // rips creep freely through the taut wrapping (the nice peel), but paper that is merely sagging under its own
     // weight only tears right where your hand is pulling it, so hanging flaps never shred themselves
     if(over>0){ let can = !sup || (sup[ia] && sup[ib]);
-      if(!can && grab.on && pos[a+2]>-0.012 && pos[b+2]>-0.012){ const gx=pos[a]-grab.wx, gy=pos[a+1]-grab.wy; can = gx*gx+gy*gy<tearR2; }   // sagging paper (below the lid) never tears
+      if(!can && grab.on){ const gx=pos[a]-grab.wx, gy=pos[a+1]-grab.wy, g2=gx*gx+gy*gy;
+        // right at the hand anything rips (no sticky flaps); further out, only paper at lid level, so sagging paper never gets holes
+        can = g2<tearR2*0.3 || (g2<tearR2 && pos[a+2]>-0.012 && pos[b+2]>-0.012); }
       if(can){ dmg[e]+=0.06+over*2.2; if(dmg[e]>=1){ breakEdge(e); continue; } } }
     const wa=im[ia], wb=im[ib], ws=wa+wb; if(ws===0) continue;
     let k=(d-r)/(d*ws); if(d<r) k*=0.25;           // fabric buckles rather than resisting compression
