@@ -78,7 +78,7 @@
     }
   </style>
   <!-- Credit: who made this. Nothing visible changes. -->
-  <meta name="description" content="Someone sent you a gift. Grab the fabric, rip it open, find out what's inside (it's probably terrible).">
+  <meta name="description" content="Someone sent you a gift. Grab the paper, rip it open, find out what's inside (it's probably terrible).">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Unwrap Roulette">
   <meta property="og:title" content="Someone sent you a gift 🎁">
@@ -98,7 +98,7 @@
 <body>
 <div id="stage">
   <canvas id="gl"></canvas>
-  <div class="hint gone" id="hint">Grab the fabric and keep dragging to rip it off</div>
+  <div class="hint gone" id="hint">Grab the paper and keep dragging to rip it off</div>
   <div class="bar off" id="bar">
     <select id="pattern" title="Wrapping pattern"></select>
     <button id="new" title="New gift (R)">↻<span class="l"> New gift</span></button>
@@ -629,7 +629,7 @@ const innerDepth = ()=> boxH*0.82;
 // keep folded layers from z-fighting: push overlapping non-neighbours apart vertically
 function selfCollide(){
   const { pos, N, nx, hashCount, hashFill, hashSorted, hashKey, aw } = S; const im=S.wm;
-  const h = S.sx*0.7, r2=h*h, thick=S.sx*0.28, MASK=16383;
+  const h = S.sx*0.7, r2=h*h, thick=S.sx*0.45, MASK=16383;
   hashCount.fill(0);
   for(let i=0;i<N;i++){ const ix=Math.floor(pos[i*3]/h), iy=Math.floor(pos[i*3+1]/h); const key=((Math.imul(ix,73856093)^Math.imul(iy,19349663))>>>0)&MASK; hashKey[i]=key; hashCount[key+1]++; }
   for(let k=1;k<=MASK+1;k++) hashCount[k]+=hashCount[k-1];
@@ -876,7 +876,7 @@ function fitCamera(){
   const a=cssW/cssH; const hx=lidW/2, hy=lidH/2;
   const corners=[]; for(const x of [-hx,hx]) for(const y of [-hy,hy]) for(const z of [0,-boxH]) corners.push([x,y,z]);
   const mobile = cssW<560, f=cam.fill||1; const top = (mobile?0.80:0.84)*f+(1-f)*0.06, bot = (mobile?-0.70:-0.74)*f+(1-f)*0.06, side = (mobile?0.94:0.86)*f;
-  let D=4, ty=0; const proj=M4.persp(FOV,a,0.05,40);
+  let D=4, ty=0; const proj=M4.persp(FOV,a,0.25,40);
   for(let it=0;it<10;it++){
     eye=[0, ty-D*Math.sin(TILT), D*Math.cos(TILT)-boxH*0.5];
     const view=M4.lookAt(eye,[0,ty,-boxH*0.5],[0,1,0]); VP=M4.mul(proj,view);
@@ -1177,7 +1177,7 @@ if(sharedGift){
   $('#intro-from').textContent = (sharedGift.to ? sharedGift.to+', ' : '') + who + ' sent you a gift.';
   $('#intro-from').hidden=false;
   $('#start-btn').textContent='UNWRAP IT';
-  $('#intro-note').textContent='No refunds. No receipts. Grab the fabric and rip.';
+  $('#intro-note').textContent='No refunds. No receipts. Grab the paper and rip.';
 }
 // intro: the wrapped box floats above the table, spinning and tumbling; START drops it into place
 const showcase={ k:1, t:0, spin:-0.6, lift:0, leaving:false, p:0 };
