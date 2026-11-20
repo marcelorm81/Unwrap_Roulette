@@ -26,12 +26,6 @@
       box-shadow:0 24px 60px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.06); text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
       transform:translateY(10px) scale(.98); opacity:0; transition:opacity .45s cubic-bezier(.2,.8,.2,1), transform .45s cubic-bezier(.2,.8,.2,1); }
     .intro.show .intro-inner{ opacity:1; transform:none; }
-    .teasers{ position:absolute; inset:0; pointer-events:none; overflow:hidden; transition:opacity .6s ease; }
-    .teasers.gone{ opacity:0; }
-    .teaser{ position:absolute; width:clamp(64px, 13vmin, 140px); aspect-ratio:1; object-fit:contain; filter:drop-shadow(0 14px 18px rgba(0,0,0,.28)); opacity:0;
-      animation:teaserIn .8s cubic-bezier(.2,.8,.2,1) forwards, bob 5s ease-in-out infinite alternate; }
-    @keyframes teaserIn{ from{ opacity:0; transform:translateY(20px) scale(.7) rotate(var(--r)); } to{ opacity:1; transform:translateY(0) scale(1) rotate(var(--r)); } }
-    @keyframes bob{ from{ translate:0 -8px; } to{ translate:0 10px; } }
     .intro-title{ font-family:'Pixelify Sans',sans-serif; font-weight:700; letter-spacing:2px; font-size:clamp(30px, 5vw, 42px); line-height:.82; }
     .intro-btn{ background:#111; color:#F03B2C; border:none; padding:12px 22px; border-radius:8px; font-family:'Pixelify Sans',sans-serif; font-weight:700; letter-spacing:1px; font-size:15px; cursor:pointer; transition:transform .1s ease, background .2s ease, color .2s ease; }
     .intro-btn:hover{ background:#FFD700; color:#000; }
@@ -123,7 +117,6 @@
       <div class="sheet-done" id="sheet-done"></div>
     </form>
   </div>
-  <div id="teasers" class="teasers"></div>
   <div id="intro" class="intro">
     <div class="intro-inner">
       <div class="intro-from" id="intro-from" hidden></div>
@@ -957,10 +950,6 @@ const Audio = {
     for(let i=0;i<crackles;i++) this.grain(t+i*(0.006+Math.random()*0.01), amp*(0.6+Math.random()*0.5), 1600+Math.random()*4200, 0.025+Math.random()*0.05+Math.min(0.06,k*0.004));
     this.grain(t, amp*0.5, 380+Math.random()*300, 0.06);
     haptic(); },
-  thud(){ if(!this.ctx||!this.on) return; const c=this.ctx, t=c.currentTime;
-    const o=c.createOscillator(), g=c.createGain(); o.type='sine'; o.frequency.setValueAtTime(140,t); o.frequency.exponentialRampToValueAtTime(48,t+0.18);
-    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.7,t+0.006); g.gain.exponentialRampToValueAtTime(0.001,t+0.28); o.connect(g).connect(this.out); o.start(t); o.stop(t+0.3);
-    this.grain(t, 0.25, 700, 0.09); },
   grabStart(){ if(!this.ctx||!this.on) return; this.grain(this.ctx.currentTime,0.12,900,0.05); },
   grabEnd(){ if(this.rustleGain) this.rustleGain.gain.setTargetAtTime(0,this.ctx.currentTime,0.05); },
   setRustle(v){ if(!this.rustleGain||!this.on) return; this.rustleGain.gain.setTargetAtTime(Math.min(0.22,v), this.ctx.currentTime, 0.04); },
@@ -1096,65 +1085,20 @@ if(sharedGift){
   $('#intro-note').textContent='No refunds. No receipts. Grab the fabric and rip.';
 }
 // intro: the wrapped box floats above the table, spinning and tumbling; START drops it into place
-const showcase={ k:1, t:0, spin:0, spin0:0, spinEnd:0, tilt:0, roll:0, lift:0, squash:0, leaving:false, p:0, landed:false };
-const IDENT=new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]); let MODEL=IDENT;
-function boxModel(spin, tilt, roll, lift, squash){
-  // rotate around the box centre: R = Rx(tilt)*Ry(roll)*Rz(spin), then lift; squash flattens on impact
-  const c=-boxH*0.5, cz=Math.cos(spin), sz=Math.sin(spin), cx=Math.cos(tilt), sx=Math.sin(tilt), cy=Math.cos(roll), sy=Math.sin(roll);
-  const Rz=[cz,sz,0, -sz,cz,0, 0,0,1], Ry=[cy,0,-sy, 0,1,0, sy,0,cy], Rx=[1,0,0, 0,cx,sx, 0,-sx,cx];
-  const m3=(a,b)=>{ const o=[]; for(let col=0;col<3;col++) for(let r=0;r<3;r++) o[col*3+r]=a[r]*b[col*3]+a[3+r]*b[col*3+1]+a[6+r]*b[col*3+2]; return o; };
-  const R=m3(Rx,m3(Ry,Rz)); const sq=1-squash, wide=1+squash*0.5;
-  const M=new Float32Array([R[0]*wide,R[1]*wide,R[2]*sq,0, R[3]*wide,R[4]*wide,R[5]*sq,0, R[6]*wide,R[7]*wide,R[8]*sq,0, 0,0,0,1]);
-  // translation: T(0,0,c+lift) * S * R * T(0,0,-c), with the squash anchored at the table (z=-boxH)
-  const tx=-(M[8]*c), ty=-(M[9]*c), tz=-(M[10]*c)+c+lift;
-  M[12]=tx; M[13]=ty; M[14]=tz - boxH*0.5*squash; return M;
-}
+const showcase={ k:1, t:0, spin:-0.6, lift:0, leaving:false, p:0 };
+const IDENT=new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]); let MODEL=IDENT;  // identity: box stays on the table
 function updateShowcase(dt){
-  const s=showcase, hover=0.22*Math.max(lidW,lidH)+boxH*0.4;
-  s.t+=dt;
-  if(!s.leaving){
-    s.spin+=dt*(0.9+0.25*Math.sin(s.t*0.7));
-    s.tilt=0.12+0.2*Math.sin(s.t*0.9);
-    s.roll=0.38*Math.sin(s.t*0.7+1.3);
-    s.lift=hover*(1+0.08*Math.sin(s.t*1.9));
-    s.squash=0;
-    setView(cam.yaw+0.18*Math.sin(s.t*0.35), cam.pitch+0.12, 1.75, hover*0.6);
-  } else {
-    // drop: fall with gravity, spin out to rest, land with a squash and a small bounce, then settle the camera
-    s.p=Math.min(1, s.p+dt/1.5); const p=s.p, fallEnd=0.42;
-    const a=Math.min(1,p/fallEnd), ease=1-Math.pow(1-a,3);
-    s.spin=lerp(s.spin0, s.spinEnd, ease);
-    s.tilt=lerp(s.tilt0, 0, a*a); s.roll=lerp(s.roll0, 0, a*a);
-    if(p<fallEnd){ s.lift=s.lift0*(1-a*a); s.squash=0; }
-    else { const b=(p-fallEnd)/(1-fallEnd);
-      if(!s.landed){ s.landed=true; Audio.thud(); if(navigator.vibrate) navigator.vibrate(18); }
-      s.lift=s.lift0*0.09*Math.max(0,Math.sin(Math.PI*Math.min(1,b*2.2)))*(1-b);
-      s.squash=0.14*Math.exp(-b*9)*Math.cos(b*28); }
-    const e=1-(p*p*(3-2*p));
-    setView(cam.yaw+e*0.18*Math.sin(s.t*0.35), cam.pitch+0.12*e, lerp(1,1.75,e), s.lift0*0.6*e);
-    if(p>=1){ s.k=0; s.lift=0; s.squash=0; MODEL=IDENT; return; }
-  }
-  MODEL=boxModel(s.spin, s.tilt, s.roll, s.lift, s.squash);
+  // turntable: the box rests on the table and the camera orbits it; START eases back into the play view
+  const s=showcase; s.t+=dt;
+  if(!s.leaving) s.spin+=dt*0.35;
+  else { s.p=Math.min(1, s.p+dt/1.4); if(s.p>=1){ s.k=0; setView(cam.yaw,cam.pitch); return; } }
+  const e=1-(s.p*s.p*(3-2*s.p));
+  setView(lerp(cam.yaw, s.spin, e), lerp(cam.pitch, 0.5, e), lerp(1, 1.35, e));
 }
 $('#start-btn').onclick=()=>{ Audio.unlock(); intro.classList.remove('show'); intro.classList.add('hidden'); 
-  // stop spinning on a full turn so the box lands square, at least half a turn more for momentum
-  const s=showcase, TAU=Math.PI*2; s.spin0=s.spin; s.spinEnd=Math.ceil((s.spin+Math.PI)/TAU)*TAU;
-  s.tilt0=s.tilt; s.roll0=s.roll; s.lift0=s.lift; s.p=0; s.leaving=true;
-  // teasers get sucked into the box
-  const cx=innerWidth/2, cy=innerHeight*0.45;
-  document.querySelectorAll('.teaser').forEach((im,i)=>{ const r=im.getBoundingClientRect();
-    im.style.transition=`transform .55s cubic-bezier(.6,0,.9,.4) ${i*0.04}s, opacity .55s ease ${i*0.04}s`;
-    im.style.animation='none'; im.style.opacity='1';
-    requestAnimationFrame(()=>{ im.style.transform=`translate(${cx-r.left-r.width/2}px, ${cy-r.top-r.height/2}px) scale(.15) rotate(${(Math.random()-.5)*540}deg)`; im.style.opacity='0'; }); });
+  const sc=showcase; sc.spin=Math.atan2(Math.sin(sc.spin), Math.cos(sc.spin)); sc.p=0; sc.leaving=true;
   setTimeout(()=>{ $('#bar').classList.remove('off'); if(!firstTear) $('#hint').classList.remove('gone'); }, 900); };
-// a few packshots float around the box as teasers (never the real prize)
-(function teasers(){
-  const box=$('#teasers'), pool=PRESENTS.filter(v=>!sharedGift || v.id!==sharedGift.v).sort(()=>Math.random()-.5).slice(0,6);
-  const spots=[[6,10],[78,8],[2,42],[84,38],[14,70],[76,66]];
-  pool.forEach((v,i)=>{ const im=new Image(); im.src=`assets/packshots/${v.id}.png`; im.alt=''; im.className='teaser';
-    im.style.left=spots[i][0]+'%'; im.style.top=spots[i][1]+'%'; im.style.setProperty('--r', ((Math.random()-.5)*30).toFixed(1)+'deg');
-    im.style.animationDelay=`${.3+i*.12}s, ${i*.7}s`; box.appendChild(im); });
-})();
+
 
 // ---------------------------------------------------------------- boot
 (async function boot(){
