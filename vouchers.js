@@ -39,4 +39,13 @@ window.VOUCHERS = [
   { id:'advisor', text:'A Personal Financial Advisor', brand:'Broke & Partners™', tpl:'infomercial', fine:'He\'s also broke. You split the consultation fee.', shot:'a 1990s clip-art style briefcase overflowing with cash' },
   { id:'internet', text:'A Piece of the Internet', brand:'Web Estate™', tpl:'webhost', fine:'Ownership of one dead hyperlink.', shot:'a broken chain link' },
   { id:'extraday', text:'One Extra Day of Life', brand:'Tomorrow Inc.', tpl:'policy', fine:'It\'s a Monday. You\'re at work.', shot:'a tear-off desk calendar' },
+  // small domestic freedoms: typographic designs, no packshot
+  { id:'gaming', text:'7 Hours of Uninterrupted Gaming', brand:'Wife Approved™', tpl:'achievement', fine:'No chores. No questions. No "are you still playing?"', noshot:true },
+  { id:'dishes', text:'Get Out of Doing the Dishes', brand:'Dish Immunity™', tpl:'soap', fine:'Valid for one full sink. Even the disgusting pan.', noshot:true },
+  { id:'noon', text:'Sleep Until Noon', brand:'Do Not Disturb™', tpl:'doorhanger', fine:'Kids, pets and breakfast are someone else\'s problem.', noshot:true },
+  { id:'cancel', text:'One Guilt-Free Cancelled Plan', brand:'Social Escape™', tpl:'rsvp', fine:'Cancel anything. No elaborate excuse required.', noshot:true },
+  { id:'nothing', text:'A Full Day of Doing Absolutely Nothing', brand:'Lazy Legend™', tpl:'closed', fine:'No productivity suggestions. No "while you\'re here…"', noshot:true },
+  { id:'nokids', text:'A Morning Without the Kids', brand:'Parent Escape™', tpl:'hallpass', fine:'You sleep. The other adult handles everything.', noshot:true },
+  { id:'family', text:'Skip One Family Gathering', brand:'Family Immunity™', tpl:'excuse', fine:'Giver handles all the questions about why you\'re not there.', noshot:true },
+  { id:'right', text:'One Day of Being Right About Everything', brand:'Yes, Darling™', tpl:'certificate', fine:'Even when you\'re wrong. Especially when you\'re wrong.', noshot:true },
 ];

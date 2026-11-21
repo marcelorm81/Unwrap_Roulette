@@ -329,6 +329,7 @@ function warmPatterns(){ const todo=PATTERNS.filter(p=>!patCache[p.id]); if(!tod
 const packshotCache = new Map();
 function loadPackshot(id){
   if(packshotCache.has(id)) return packshotCache.get(id);
+  const vv=PRESENTS.find(x=>x.id===id); if(vv && vv.noshot) return Promise.resolve(null);   // typographic coupons have no picture
   const p=new Promise(res=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=()=>res(null); im.src=`assets/packshots/${id}.png`; });
   packshotCache.set(id,p); return p;
 }
