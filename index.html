@@ -14,7 +14,7 @@
   <style>
     :root{ --cover:#F03B2C; --bg:#2D4A3E; }
     *{ box-sizing:border-box; }
-    html,body{ height:100%; margin:0; overflow:hidden; background:var(--bg); transition:background .6s ease; }
+    html,body{ height:100%; margin:0; overflow:hidden; background:var(--bg); }
     #stage{ position:fixed; inset:0; }
     #gl{ position:fixed; left:0; top:0; width:100vw; height:100vh; height:100lvh; display:block; touch-action:none; cursor:grab; }   /* full bleed: under Safari's glass bars too */
     #gl.grabbing{ cursor:grabbing; }
@@ -66,6 +66,12 @@
     .next.show{ animation:nudge 2.4s ease-in-out .3s infinite; }
     @keyframes nudge{ 0%,62%,100%{ transform:none; } 66%{ transform:rotate(-5deg) scale(1.04); } 70%{ transform:rotate(5deg) scale(1.04); } 74%{ transform:rotate(-4deg); } 78%{ transform:rotate(3deg); } 82%{ transform:none; } }
     .next:active, .share:active{ transform:translateY(1px) scale(.98); }
+    /* phones: a Shake button between Share and Next, to rattle the box and hear what's inside */
+    .shake{ display:none; position:absolute; left:50%; bottom:max(18px, env(safe-area-inset-bottom)); transform:translateX(-50%); height:40px; padding:0 16px; border:0; border-radius:11px; cursor:pointer; pointer-events:auto;
+      font:700 14px/1 'Pixelify Sans', system-ui, sans-serif; letter-spacing:1px; color:var(--accent, #F03B2C); background:#111; box-shadow:0 10px 24px rgba(0,0,0,.28); transition:opacity .3s ease, color .6s ease; }
+    .shake:active{ transform:translateX(-50%) scale(.96); }
+    .shake.gone{ opacity:0; pointer-events:none; }
+    @media (pointer:coarse){ .shake{ display:block; } }
     .snd-top{ position:absolute; top:max(16px, env(safe-area-inset-top)); right:max(16px, env(safe-area-inset-right)); width:44px; height:44px; border-radius:12px; border:0; cursor:pointer; pointer-events:auto;
       font:700 17px/1 'Pixelify Sans', system-ui, sans-serif; color:var(--accent, #F03B2C); background:#111; box-shadow:0 8px 20px rgba(0,0,0,.25); transition:background .15s ease, color .6s ease; }
     .snd-top:hover{ background:#000; }
@@ -128,6 +134,7 @@
     <button class="prev" id="prev" title="Previous gift" aria-label="Previous gift">←</button>
     <button class="next" id="next" title="Next gift (R)">Next gift →</button>
     <button class="share" id="send" title="Share this gift with someone">Share</button>
+    <button class="shake" id="shake" title="Shake the box" aria-label="Shake the box">Shake</button>
     <button class="snd-top" id="snd" title="Sound (M)" aria-label="Sound">♪</button>
   </div>
   <div id="sheet" class="sheet" aria-hidden="true">
@@ -550,7 +557,7 @@ void main(){
   float soft = mix(1.0, smoothstep(-0.06-uLift*0.4, 0.32+uLift*1.2, d1), 1.0/(1.0+uLift*3.0));
   float d0 = sdBox(bp, uHalf);
   float ao = mix(smoothstep(0.0, 0.05, d0), 1.0, smoothstep(0.0, 0.08, uLift));
-  float vig = 1.0 - 0.22*smoothstep(0.8, 3.0, length(vPos.xy*vec2(0.8,1.0)));   // gentle, so the far table reads as one even backdrop
+  float vig = 1.0;   // no vignette: the table is one even colour edge to edge, so Safari's glass bars blend into it
   float n = hash12(floor(gl_FragCoord.xy))*0.03-0.015;
   float sh = shadowAt(vPos, vec3(0,0,1));
   float shade = min(0.5+0.5*soft, mix(0.52, 1.0, sh)) * mix(0.55, 1.0, contactAt(vPos));
@@ -1063,7 +1070,7 @@ function applyPattern(p){
     rs.setProperty('--gift-deep', `rgb(${d.join(',')})`); rs.setProperty('--gift-deep-ink', (0.2126*d[0]+0.7152*d[1]+0.0722*d[2])<140 ? '#fff' : '#000'); }
   pattern=p;
   const pc=patternTex(p); patTex=pc.tex; matTex=pc.mtex;
-  document.documentElement.style.setProperty('--bg', p.bg); { const m=document.getElementById('theme-color'); if(m) m.setAttribute('content', p.bg); }
+
 }
 let gift=null, sharedGift=null, baseAspect=1;
 (function readShare(){
@@ -1098,7 +1105,7 @@ function newGift(sameGift){
     const lc=lidCanvas(lw,lh,v,img); lidTex = texture(lc, {repeat:false}, lidTex); foilTex = texture(lc.foilMask||blankMask, {repeat:false}, foilTex);
   });
   buildStatic(); buildCloth(); fitCamera();
-  torn=false; $('#next').classList.remove('show'); $('#send').classList.remove('pulse');
+  torn=false; $('#next').classList.remove('show'); $('#send').classList.remove('pulse'); $('#shake').classList.remove('gone');
 }
 
 // ---------------------------------------------------------------- interaction
@@ -1254,7 +1261,7 @@ const INSIDE={ ice:'slosh', oliveoil:'slosh', lasagna:'slosh', plant:'thud', cel
 // tilt it, and the box accelerates; the objects lag behind, slide and bang into the walls. Each hit is voiced by how
 // hard it was and which object it was, so it rattles naturally and never repeats exactly.
 const KINDS={ rattle:{ n:4, r:0.16, e:0.55, fr:0.6 }, thud:{ n:1, r:0.42, e:0.25, fr:1.6 }, slosh:{ n:2, r:0.35, e:0.12, fr:2.4 }, card:{ n:1, r:0.5, e:0.18, fr:1.2 } };
-const inside={ id:null, kind:'card', obj:[], px:0, py:0, vx:0, vy:0, ax:0, ay:0, has:false, mx:0.5, my:0.5, tx:0, ty:0, dax:0, day:0 };
+const inside={ kx:0, ky:0, id:null, kind:'card', obj:[], px:0, py:0, vx:0, vy:0, ax:0, ay:0, has:false, mx:0.5, my:0.5, tx:0, ty:0, dax:0, day:0 };
 addEventListener('pointermove', e=>{ if(e.pointerType==='mouse'){ inside.mx=e.clientX/innerWidth; inside.my=e.clientY/innerHeight; } });
 function onMotion(e){ const a=e.acceleration; if(a && a.x!=null){ inside.dax=a.x; inside.day=a.y; } }        // shaking the phone (m/s²)
 function insideTick(dt){
@@ -1265,24 +1272,35 @@ function insideTick(dt){
   const px=inside.mx*2, py=inside.my*2; if(!inside.has){ inside.px=px; inside.py=py; inside.has=true; }
   const vx=(px-inside.px)/dt, vy=(py-inside.py)/dt; inside.px=px; inside.py=py;
   const svx=lerp(inside.vx,vx,0.3), svy=lerp(inside.vy,vy,0.3); let ax=(svx-inside.vx)/dt, ay=(svy-inside.vy)/dt; inside.vx=svx; inside.vy=svy;
-  ax=ax*1.25 + inside.dax*1.2; ay=ay*1.25 - inside.day*1.2; inside.dax*=0.5; inside.day*=0.5;
+  ax=ax*1.0 + inside.dax*0.9; ay=ay*1.0 - inside.day*0.9; inside.dax*=0.5; inside.day*=0.5;
   // tilt on phones: gravity pulls things toward the low side
-  ax += inside.tx*9; ay += inside.ty*9;
+  ax += inside.tx*9 + inside.kx; ay += inside.ty*9 + inside.ky;
   ax=clamp(ax,-160,160); ay=clamp(ay,-160,160);
   const K=KINDS[inside.kind], now=performance.now()/1000, W=1-K.r; let slideV=0;
   for(const o of inside.obj){
     o.vx-=ax*dt; o.vy-=ay*dt;                                   // the box accelerates; the contents lag behind
     const f=Math.exp(-K.fr*dt); o.vx*=f; o.vy*=f; o.x+=o.vx*dt; o.y+=o.vy*dt;
     for(const ax_ of ['x','y']){ const vk='v'+ax_; if(Math.abs(o[ax_])>W){ const imp=Math.abs(o[vk]); o[ax_]=Math.sign(o[ax_])*W; o[vk]=-o[vk]*K.e;
-        if(live && imp>1.4 && now-o.last>0.045){ o.last=now; Audio.knock(inside.kind, (imp-1.4)/6, o.pf); } } }
+        if(live && imp>2.3 && now-o.last>0.06){ o.last=now; Audio.knock(inside.kind, (imp-2.3)/9, o.pf); } } }
     slideV=Math.max(slideV, Math.hypot(o.vx,o.vy)); }
   // objects knock each other a little (rattles)
   if(inside.kind==='rattle') for(let i=0;i<inside.obj.length;i++) for(let j=i+1;j<inside.obj.length;j++){ const a=inside.obj[i], b=inside.obj[j], dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy), m=K.r*1.6;
     if(d<m && d>1e-4){ const nx=dx/d, ny=dy/d, rv=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny; if(rv<0){ a.vx+=rv*nx; a.vy+=rv*ny; b.vx-=rv*nx; b.vy-=rv*ny;
-      if(live && -rv>1.7 && now-a.last>0.045){ a.last=now; Audio.knock('rattle', (-rv-1.7)/8, (a.pf+b.pf)*0.6); } }
+      if(live && -rv>2.6 && now-a.last>0.06){ a.last=now; Audio.knock('rattle', (-rv-2.6)/11, (a.pf+b.pf)*0.6); } }
       const push=(m-d)/2; a.x-=nx*push; a.y-=ny*push; b.x+=nx*push; b.y+=ny*push; } }
-  if(inside.kind==='card' || inside.kind==='slosh') Audio.scrape(live ? Math.max(0, slideV-0.8)*0.03 : 0);
+  if(inside.kind==='card' || inside.kind==='slosh') Audio.scrape(live ? Math.max(0, slideV-1.4)*0.02 : 0);
 }
+// the Shake button: the box jiggles side to side for a moment, and the contents feel every swing
+const boxShake={ t:-1 };
+function updateBoxShake(dt){ inside.kx=0; inside.ky=0; if(boxShake.t<0) return;
+  if(slide.on || showcase.k>0 || torn){ boxShake.t=-1; return; }
+  boxShake.t+=dt; const T=0.75, t=boxShake.t, M=Math.max(lidW,lidH);
+  if(t>=T){ boxShake.t=-1; MODEL=IDENT; return; }
+  const env=Math.sin(Math.PI*t/T), w=2*Math.PI*6.5, sn=Math.sin(w*t), x=0.035*M*sn*env, r=0.05*sn*env, c=Math.cos(r), si=Math.sin(r);
+  MODEL=new Float32Array([c,si,0,0, -si,c,0,0, 0,0,1,0, x,0,0,1]);
+  inside.kx = 0.3*w*w*sn*env; inside.ky = 0.08*w*w*Math.cos(w*t*0.5)*env;    // the box's acceleration, felt by what's inside
+}
+$('#shake').onclick=()=>{ Audio.unlock(); if(boxShake.t<0 && !torn) boxShake.t=0; if(navigator.vibrate) navigator.vibrate([12,40,12,40,12]); };
 let lastHaptic=0; function haptic(){ const n=performance.now(); if(n-lastHaptic>70 && navigator.vibrate){ navigator.vibrate(6); lastHaptic=n; } }
 
 // ---------------------------------------------------------------- render
@@ -1299,7 +1317,12 @@ function matUniforms(u, p, mtex){ if(!u.uSheen) return; const m=p.mat;
   gl.uniform1f(u.uCoat,m.coat||0); gl.uniform1f(u.uFiber,m.fiber||0); gl.uniform1f(u.uLinen,m.linen||0); gl.uniform1f(u.uGlitter,m.glitter||0); gl.uniform1f(u.uHolo,m.holo||0); gl.uniform1f(u.uBump,m.bump||0);
   if(u.uMat){ gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D,mtex); gl.uniform1i(u.uMat,3); gl.activeTexture(gl.TEXTURE0); } }
 
-let bgCur=null;
+let bgCur=null, pageCol='';
+// the page, the canvas and the browser bars wear exactly the colour the table is drawn in (same tone map as the shader),
+// following it as it fades between gifts, so Safari's glass bars show no seam
+function syncPageColour(bg){ const tm=c=>{ c=Math.max(c*1.15,0); if(c>0.82) c=0.82+0.18*(1-Math.exp(-(c-0.82)/0.18)); return Math.round(Math.pow(c,1/2.2)*255); };
+  const col=`rgb(${tm(bg[0])},${tm(bg[1])},${tm(bg[2])})`; if(col===pageCol) return; pageCol=col;
+  document.documentElement.style.setProperty('--bg', col); canvas.style.backgroundColor=col; const m=document.getElementById('theme-color'); if(m) m.setAttribute('content', col); }
 function render(){
   // shadow pass
   gl.bindFramebuffer(gl.FRAMEBUFFER, shadowFB); gl.viewport(0,0,SM,SM); gl.clear(gl.DEPTH_BUFFER_BIT);
@@ -1317,7 +1340,7 @@ function render(){
 
   // main pass
   gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0,0,canvas.width,canvas.height);
-  const tg=hexLin(pattern.bg); if(!bgCur) bgCur=tg.slice(); for(let i=0;i<3;i++) bgCur[i]+=(tg[i]-bgCur[i])*0.08; const bg=bgCur;   /* table colour fades between gifts */ gl.clearColor(Math.pow(bg[0],1/2.2),Math.pow(bg[1],1/2.2),Math.pow(bg[2],1/2.2),1); gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  const tg=hexLin(pattern.bg); if(!bgCur) bgCur=tg.slice(); for(let i=0;i<3;i++) bgCur[i]+=(tg[i]-bgCur[i])*0.08; const bg=bgCur; syncPageColour(bg);   /* table colour fades between gifts */ gl.clearColor(Math.pow(bg[0],1/2.2),Math.pow(bg[1],1/2.2),Math.pow(bg[2],1/2.2),1); gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
 
   gl.useProgram(P.table.p); bindCommon(P.table, IDENT); gl.uniform3fv(P.table.u.uBg,bg); gl.uniform2f(P.table.u.uHalf,lidW/2,lidH/2); gl.uniform1f(P.table.u.uBoxH,boxH); gl.uniform1f(P.table.u.uLift,showcase.lift); gl.uniform2f(P.table.u.uSlide,slide.x,0);
   gl.bindVertexArray(mesh.table.vao); gl.drawArrays(gl.TRIANGLES,0,mesh.table.count);
@@ -1368,7 +1391,7 @@ function frame(now){
   cam.yaw+=(cam.tyaw-cam.yaw)*Math.min(1,dt*3); cam.pitch+=(cam.tpitch-cam.pitch)*Math.min(1,dt*3);
   insideTick(dt);
   if(showcase.k>0) updateShowcase(dt); else setView(cam.yaw,cam.pitch);
-  updateSlide(dt);
+  updateSlide(dt); updateBoxShake(dt);
   updateAwake();
   S.breaks=0; let steps=0;
   const maxSteps = perf.sim>17 ? 2 : 3;      // under heavy load, ease off instead of letting the frame rate collapse
@@ -1388,7 +1411,7 @@ function frame(now){
   computeNormals(); updateFibers();
   const m=mesh.cloth; gl.bindBuffer(gl.ARRAY_BUFFER,m.bp); gl.bufferSubData(gl.ARRAY_BUFFER,0,S.pos); gl.bindBuffer(gl.ARRAY_BUFFER,m.bn); gl.bufferSubData(gl.ARRAY_BUFFER,0,S.nor);
   if(!torn && (S.dead > S.C*0.12 || (S.anchFrac||1) < 0.85)){   // ripped enough: a good chunk torn off or destroyed
-    torn=true; $('#next').classList.add('show'); }
+    torn=true; $('#next').classList.add('show'); $('#shake').classList.add('gone'); }
   perf.sim=lerp(perf.sim, performance.now()-t0, 0.05);
   render();
   requestAnimationFrame(frame);
@@ -1407,7 +1430,11 @@ function go(dir){ if(slide.on || showcase.k>0) return;
   slide.dir=dir; slide.on=true; slide.phase=1; slide.t=0; Audio.whoosh(); }
 function nextGift(){ go(1); }
 function prevGift(){ go(-1); }
-function updatePrev(){ const b=$('#prev'); if(!b) return; b.classList.toggle('show', past.length>0); const n=$('#next'); b.style.right=(innerWidth-n.getBoundingClientRect().left+8)+'px'; }
+function updatePrev(){ const b=$('#prev'); if(!b) return; b.classList.toggle('show', past.length>0); const n=$('#next'); b.style.right=(innerWidth-n.getBoundingClientRect().left+8)+'px'; placeShake(); }
+// Shake sits centred in the gap between Share and the buttons on the right (Previous, when it's showing, then Next)
+function placeShake(){ const sh=$('#shake'); if(!sh) return; const a=$('#send').getBoundingClientRect().right, n=$('#next').getBoundingClientRect().left, p=$('#prev');
+  const right = past.length>0 ? n-8-p.offsetWidth : n; sh.style.left=((a+right)/2)+'px'; }
+addEventListener('resize', placeShake); requestAnimationFrame(()=>requestAnimationFrame(placeShake));
 function updateSlide(dt){
   if(!slide.on) return;
   const D=2.4*Math.max(lidW,lidH); slide.t=Math.min(1, slide.t+dt/0.55);
