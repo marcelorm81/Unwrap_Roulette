@@ -54,18 +54,18 @@
     .actions.off *{ pointer-events:none !important; }
     .next, .share{ position:absolute; bottom:max(18px, env(safe-area-inset-bottom)); height:50px; padding:0 22px; border:0; border-radius:14px; cursor:pointer; pointer-events:auto;
       font:700 16px/1 'Pixelify Sans', system-ui, sans-serif; letter-spacing:1px; box-shadow:0 12px 30px rgba(0,0,0,.3); transition:opacity .35s ease, transform .35s cubic-bezier(.2,.9,.25,1.2), background .15s ease; }
-    .next, .share{ color:#F03B2C; background:#111; }
-    .next:hover, .share:hover{ background:#000; color:#ff5446; }
+    .next, .share{ color:var(--accent, #F03B2C); background:#111; transition:opacity .35s ease, transform .35s cubic-bezier(.2,.9,.25,1.2), background .15s ease, color .6s ease; }
+    .next:hover, .share:hover{ background:#000; filter:brightness(1.12); }
     .next{ right:max(16px, env(safe-area-inset-right)); }
     .share{ left:max(16px, env(safe-area-inset-left)); }
     /* once there's something to see, Next gift wiggles to say "go on" */
     .next.show{ animation:nudge 2.4s ease-in-out .3s infinite; }
     @keyframes nudge{ 0%,62%,100%{ transform:none; } 66%{ transform:rotate(-5deg) scale(1.04); } 70%{ transform:rotate(5deg) scale(1.04); } 74%{ transform:rotate(-4deg); } 78%{ transform:rotate(3deg); } 82%{ transform:none; } }
     .next:active, .share:active{ transform:translateY(1px) scale(.98); }
-    .snd-top{ position:absolute; top:max(16px, env(safe-area-inset-top)); right:max(16px, env(safe-area-inset-right)); width:42px; height:42px; border-radius:50%; border:0; cursor:pointer; pointer-events:auto;
-      font:700 16px/1 'Pixelify Sans', system-ui, sans-serif; color:#f4ece6; background:rgba(18,12,10,.5); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); box-shadow:inset 0 0 0 1px rgba(255,255,255,.1); }
-    .snd-top:hover{ background:rgba(18,12,10,.68); }
-    .snd-top.on{ background:#f4ece6; color:#141010; }
+    .snd-top{ position:absolute; top:max(16px, env(safe-area-inset-top)); right:max(16px, env(safe-area-inset-right)); width:44px; height:44px; border-radius:12px; border:0; cursor:pointer; pointer-events:auto;
+      font:700 17px/1 'Pixelify Sans', system-ui, sans-serif; color:#F03B2C; background:#111; box-shadow:0 8px 20px rgba(0,0,0,.25); transition:background .15s ease; }
+    .snd-top:hover{ background:#000; }
+    .snd-top.on{ color:#7a2a24; }
     .hint{ position:absolute; left:50%; top:max(18px, env(safe-area-inset-top)); transform:translateX(-50%); font:13px/1.3 'Courier Prime', monospace; color:#fff; background:rgba(18,12,10,.45); padding:8px 14px; border-radius:20px; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); transition:opacity .6s ease; pointer-events:none; max-width:calc(100vw - 32px); text-align:center; white-space:normal; }
     .hint.gone{ opacity:0; }
     .bar #send{ background:#F03B2C; color:#fff; }
@@ -74,18 +74,19 @@
     @keyframes pulse2{ 0%,100%{ box-shadow:0 0 0 0 rgba(240,59,44,.0);} 50%{ box-shadow:0 0 0 6px rgba(240,59,44,.45);} }
     .sheet{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(10,6,4,.35); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); opacity:0; pointer-events:none; transition:opacity .25s ease; }
     .sheet.open{ opacity:1; pointer-events:auto; }
-    .sheet-card{ width:min(340px, calc(100vw - 32px)); background:#FFF6E5; border-radius:14px; padding:20px; box-shadow:0 24px 60px rgba(0,0,0,.4); font-family:'Courier Prime', monospace; color:#111; transform:translateY(8px) rotate(-1deg); transition:transform .25s ease; }
+    .sheet-card{ position:relative; width:min(340px, calc(100vw - 32px)); background:var(--gift, #B31313); border-radius:14px; padding:22px 20px 20px; box-shadow:0 24px 60px rgba(0,0,0,.45); font-family:'Courier Prime', monospace; color:var(--gift-ink, #000); transform:translateY(8px) rotate(-1deg); transition:transform .25s ease; }
     .sheet.open .sheet-card{ transform:none; }
-    .sheet-card h3{ margin:0 0 4px; font:700 24px/1 'Pixelify Sans', sans-serif; letter-spacing:1px; }
-    .sheet-card p{ margin:0 0 14px; font-size:13px; opacity:.75; }
+    .sheet-card h3{ margin:0 44px 6px 0; font:700 26px/1 'Pixelify Sans', sans-serif; letter-spacing:1px; }
+    .sheet-card p{ margin:0 0 14px; font-size:13px; opacity:.85; }
     .sheet-card label{ display:block; font-size:12px; font-weight:700; margin:10px 0 4px; letter-spacing:1px; }
-    .sheet-card input{ width:100%; font:16px 'Courier Prime', monospace; padding:10px 12px; border:2px solid #111; border-radius:8px; background:#fff; outline:none; }
-    .sheet-card input:focus{ border-color:#F03B2C; }
-    .sheet-row{ display:flex; gap:8px; margin-top:16px; }
-    .sheet-row button{ flex:1; font:700 15px 'Pixelify Sans', sans-serif; letter-spacing:1px; border:0; border-radius:8px; padding:12px; cursor:pointer; }
-    .sheet-row .go{ background:#F03B2C; color:#fff; } .sheet-row .go:hover{ background:#111; }
-    .sheet-row .cancel{ background:transparent; border:2px solid #111; }
-    .sheet-done{ margin-top:12px; font-size:13px; min-height:1.2em; color:#1b7a3a; font-weight:700; word-break:break-all; }
+    .sheet-card input{ width:100%; font:16px 'Courier Prime', monospace; color:#000; padding:10px 12px; border:2px solid #000; border-radius:8px; background:#fff2ee; outline:none; }
+    .sheet-card input:focus{ border-color:#000; background:#fff; }
+    .sheet-close{ position:absolute; top:14px; right:14px; width:36px; height:36px; border:0; border-radius:10px; background:#111; color:var(--accent, #F03B2C); font:700 18px/1 'Pixelify Sans', sans-serif; cursor:pointer; }
+    .sheet-close:hover{ background:#000; }
+    .sheet-row{ display:flex; margin-top:16px; }
+    .sheet-row button{ flex:1; font:700 15px 'Pixelify Sans', sans-serif; letter-spacing:1px; border:0; border-radius:10px; padding:14px; cursor:pointer; }
+    .sheet-row .go{ background:#111; color:var(--accent, #F03B2C); } .sheet-row .go:hover{ background:#000; }
+    .sheet-done{ margin-top:12px; font-size:13px; min-height:1.2em; color:inherit; font-weight:700; word-break:break-all; }
     .intro-from{ font:700 13px/1.4 'Courier Prime', monospace; color:#111; margin:0; }
     .nogl{ position:absolute; inset:0; display:grid; place-items:center; color:#fff; font:16px 'Courier Prime', monospace; text-align:center; padding:24px; }
     @media (max-width:560px){
@@ -126,11 +127,12 @@
   </div>
   <div id="sheet" class="sheet" aria-hidden="true">
     <form class="sheet-card" id="sheet-form" autocomplete="off">
+      <button type="button" class="sheet-close" id="sheet-cancel" aria-label="Close">✕</button>
       <h3>SEND THIS GIFT</h3>
       <p>They get this exact box. What's inside stays a surprise (sorry).</p>
       <label for="to">TO</label><input id="to" maxlength="24" placeholder="Their name">
       <label for="from">FROM</label><input id="from" maxlength="24" placeholder="Your name">
-      <div class="sheet-row"><button type="button" class="cancel" id="sheet-cancel">NAH</button><button type="submit" class="go">GET LINK</button></div>
+      <div class="sheet-row"><button type="submit" class="go">GET LINK</button></div>
       <div class="sheet-done" id="sheet-done"></div>
     </form>
   </div>
@@ -923,7 +925,17 @@ function choosePattern(){
   if(v==='random'){ let p; do{ p=PATTERNS[(Math.random()*PATTERNS.length)|0]; }while(PATTERNS.length>1 && p===pattern); return p; }
   return PATTERNS.find(p=>p.id===v)||PATTERNS[0];
 }
+function accentFor(hex){
+  // the gift's table colour, lifted until it reads clearly on a black button
+  let [r,g,b]=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));
+  const lum=()=>0.2126*r+0.7152*g+0.0722*b;
+  if(lum()<150){ const mx=Math.max(r,g,b)||1; const k=Math.min(255/mx, 2.6); r=Math.min(255,r*k); g=Math.min(255,g*k); b=Math.min(255,b*k);
+    if(lum()<150){ const m=(150-lum())/(255-lum()); r+=(255-r)*m; g+=(255-g)*m; b+=(255-b)*m; } }
+  return `rgb(${r|0},${g|0},${b|0})`;
+}
 function applyPattern(p){
+  const rs=document.documentElement.style; rs.setProperty('--accent', accentFor(p.bg)); rs.setProperty('--gift', p.bg);
+  { const [r,g,b]=[1,3,5].map(i=>parseInt(p.bg.slice(i,i+2),16)); rs.setProperty('--gift-ink', (0.2126*r+0.7152*g+0.0722*b)<140 ? '#fff' : '#000'); }
   pattern=p;
   patTex = texture(p.draw(), {repeat:true}, patTex);
   document.documentElement.style.setProperty('--bg', p.bg);
