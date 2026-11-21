@@ -1211,8 +1211,45 @@ const Audio = {
   grabStart(){ if(!this.ctx||!this.on) return; this.grain(this.ctx.currentTime,0.12,900,0.05); },
   grabEnd(){ if(this.rustleGain) this.rustleGain.gain.setTargetAtTime(0,this.ctx.currentTime,0.05); },
   setRustle(v){ if(!this.rustleGain||!this.on) return; this.rustleGain.gain.setTargetAtTime(Math.min(0.22,v), this.ctx.currentTime, 0.04); },
+  // next / previous gift: an air whoosh that swells as the box slides away
+  whoosh(){ if(!this.ctx||!this.on) return; const c=this.ctx, t=c.currentTime, s=c.createBufferSource(); s.buffer=this.noise;
+    const f=c.createBiquadFilter(); f.type='bandpass'; f.Q.value=1.4; f.frequency.setValueAtTime(350,t); f.frequency.exponentialRampToValueAtTime(2600,t+0.3); f.frequency.exponentialRampToValueAtTime(700,t+0.6);
+    const g=c.createGain(); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.55,t+0.26); g.gain.exponentialRampToValueAtTime(0.001,t+0.62);
+    s.connect(f).connect(g).connect(this.out); s.start(t, Math.random()*1.2, 0.66); },
+  // the gift lands: a soft cardboard "poomp" (falling sine) with a muffled papery puff
+  thump(k=1){ if(!this.ctx||!this.on) return; const c=this.ctx, t=c.currentTime;
+    const o=c.createOscillator(), g=c.createGain(); o.type='sine'; o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(52,t+0.14);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.75*k,t+0.006); g.gain.exponentialRampToValueAtTime(0.001,t+0.26); o.connect(g).connect(this.out); o.start(t); o.stop(t+0.3);
+    const s=c.createBufferSource(); s.buffer=this.noise; const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=700; const g2=c.createGain();
+    g2.gain.setValueAtTime(0,t); g2.gain.linearRampToValueAtTime(0.5*k,t+0.004); g2.gain.exponentialRampToValueAtTime(0.001,t+0.09); s.connect(lp).connect(g2).connect(this.out); s.start(t, Math.random()*1.5, 0.12); },
+  // a filtered noise burst heard through the box (muffled)
+  hit(t, amp, f, dur, q=1, type='bandpass'){ const c=this.ctx, s=c.createBufferSource(); s.buffer=this.noise; const bp=c.createBiquadFilter(); bp.type=type; bp.frequency.value=f; bp.Q.value=q;
+    const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=3200; const g=c.createGain();
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(amp,t+0.003); g.gain.exponentialRampToValueAtTime(0.0008,t+dur);
+    s.connect(bp).connect(lp).connect(g).connect(this.out); s.start(t, Math.random()*1.6, dur+0.03); },
+  tone(t, amp, f0, f1, dur){ const c=this.ctx, o=c.createOscillator(), g=c.createGain(); o.frequency.setValueAtTime(f0,t); o.frequency.exponentialRampToValueAtTime(f1,t+dur);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(amp,t+0.004); g.gain.exponentialRampToValueAtTime(0.001,t+dur); o.connect(g).connect(this.out); o.start(t); o.stop(t+dur+0.02); },
+  // shaking the box: what's inside knocks against the walls, and it sounds like what it is
+  knock(kind, k){ if(!this.ctx||!this.on) return; const t=this.ctx.currentTime, R=Math.random; k=Math.min(1,k);
+    if(kind==='slosh'){ const c=this.ctx, s=c.createBufferSource(); s.buffer=this.noise; const f=c.createBiquadFilter(); f.type='bandpass'; f.Q.value=2.2;
+      f.frequency.setValueAtTime(320,t); f.frequency.exponentialRampToValueAtTime(900+R()*400,t+0.12); f.frequency.exponentialRampToValueAtTime(380,t+0.3);
+      const g=c.createGain(); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.5*k,t+0.05); g.gain.exponentialRampToValueAtTime(0.001,t+0.34); s.connect(f).connect(g).connect(this.out); s.start(t,R()*1.5,0.4);
+      this.tone(t+0.02,0.18*k,180+R()*40,120,0.12); }
+    else if(kind==='thud'){ this.tone(t,0.55*k,120+R()*30,60,0.16); this.hit(t,0.35*k,420,0.07,0.9); }
+    else if(kind==='rattle'){ for(let i=0,n=3+(R()*4|0);i<n;i++) this.hit(t+i*(0.008+R()*0.018), (0.3+R()*0.3)*k, 2400+R()*3200, 0.012+R()*0.02, 4); this.tone(t,0.14*k,260,180,0.05); }
+    else { this.hit(t,0.32*k,1100+R()*500,0.09,0.7); this.hit(t+0.03,0.16*k,2200,0.05,1.2); this.tone(t,0.12*k,200,140,0.06); }   // a card sliding and tapping the wall
+  },
   toggle(){ this.on=!this.on; if(this.out) this.out.gain.value=this.on?0.9:0; $('#snd').classList.toggle('on',!this.on); $('#snd').textContent=this.on?'♪':'×'; }
 };
+const INSIDE={ ice:'slosh', oliveoil:'slosh', lasagna:'slosh', plant:'thud', celeb:'thud', speech:'thud', therapy:'thud', advisor:'thud',
+  usb:'rattle', lottery:'rattle', nft:'rattle', expired:'rattle', gta:'rattle', mobiledata:'rattle', cloud:'rattle', internet:'rattle', pigeon:'rattle' };
+// shake (mouse on desktop, tilt on phones): each time the motion reverses hard, the contents hit the box
+const shake={ py:0, pp:0, vx:0, vy:0, sp:0, last:0 };
+function shakeTick(dt){ if(dt<=0) return; const vx=(cam.yaw-shake.py)/dt, vy=(cam.pitch-shake.pp)/dt; shake.py=cam.yaw; shake.pp=cam.pitch;   // the eased camera, so speed is smooth
+  const now=performance.now()/1000, v=Math.hypot(vx,vy*1.6);
+  if(showcase.k===0 && !torn && !slide.on && !grab.on && vx*shake.vx+vy*shake.vy<0 && shake.sp>0.22 && now-shake.last>0.09){
+    shake.last=now; Audio.knock(INSIDE[present.id]||'card', 0.25+shake.sp*0.6); }
+  if(v>0.05){ shake.vx=vx; shake.vy=vy; } shake.sp=lerp(shake.sp, v, 0.5); }
 let lastHaptic=0; function haptic(){ const n=performance.now(); if(n-lastHaptic>70 && navigator.vibrate){ navigator.vibrate(6); lastHaptic=n; } }
 
 // ---------------------------------------------------------------- render
@@ -1296,6 +1333,7 @@ function frame(now){
   }
   sweep(dt);
   cam.yaw+=(cam.tyaw-cam.yaw)*Math.min(1,dt*3); cam.pitch+=(cam.tpitch-cam.pitch)*Math.min(1,dt*3);
+  shakeTick(dt);
   if(showcase.k>0) updateShowcase(dt); else setView(cam.yaw,cam.pitch);
   updateSlide(dt);
   updateAwake();
@@ -1333,7 +1371,7 @@ function go(dir){ if(slide.on || showcase.k>0) return;
   Audio.unlock(); releaseGrab();
   if(dir>0){ past.push(gift); slide.to = ahead.length ? ahead.pop() : null; }
   else { ahead.push(gift); slide.to = past.pop(); }
-  slide.dir=dir; slide.on=true; slide.phase=1; slide.t=0; }
+  slide.dir=dir; slide.on=true; slide.phase=1; slide.t=0; Audio.whoosh(); }
 function nextGift(){ go(1); }
 function prevGift(){ go(-1); }
 function updatePrev(){ const b=$('#prev'); if(!b) return; b.classList.toggle('show', past.length>0); const n=$('#next'); b.style.right=(innerWidth-n.getBoundingClientRect().left+8)+'px'; }
@@ -1504,7 +1542,7 @@ function updateDrop(dt){
   if(!drop.on) return; drop.t+=dt; const M=Math.max(lidW,lidH), T=0.62, h0=2.8*M;
   if(drop.t<T){ const a=drop.t/T; drop.base=h0*(1-a*a); const sp=0.45*(1-a)*(1-a), c=Math.cos(sp), sn=Math.sin(sp);
     MODEL=new Float32Array([c,sn,0,0, -sn,c,0,0, 0,0,1,0, 0,0,drop.base,1]); return; }
-  if(!drop.landed){ drop.landed=true; if(navigator.vibrate && navigator.userActivation?.hasBeenActive!==false) navigator.vibrate(18); }
+  if(!drop.landed){ drop.landed=true; Audio.thump(); if(navigator.vibrate && navigator.userActivation?.hasBeenActive!==false) navigator.vibrate(18); }
   const b=(drop.t-T)/0.55, bz=Math.max(0, 0.05*M*Math.sin(Math.PI*Math.min(1,b*1.8))*(1-b)), sq=0.12*Math.exp(-b*8)*Math.cos(b*24);
   drop.base=bz; MODEL = b>=1 ? IDENT : new Float32Array([1+sq*0.5,0,0,0, 0,1+sq*0.5,0,0, 0,0,1-sq,0, 0,0,bz-boxH*sq,1]);
   if(b>=1){ drop.on=false; drop.done=true; drop.base=0; MODEL=IDENT; }
