@@ -107,14 +107,14 @@
   <meta property="og:site_name" content="Unwrap Roulette">
   <meta property="og:title" content="Someone sent you a gift 🎁">
   <meta property="og:description" content="Rip it open to find out what's inside. It's probably terrible.">
-  <meta property="og:image" content="https://unwrap-roulette.vercel.app/og.jpg?v=2">
+  <meta property="og:image" content="https://unwrap-roulette.vercel.app/og.jpg?v=3">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="The words Someone sent you a gift, in black pixel type on red. Unwrap Roulette.">
+  <meta property="og:image:alt" content="A gold gift voucher on red: Someone sent you a gift. Unwrap Roulette. Non-refundable. Probably terrible.">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Someone sent you a gift 🎁">
   <meta name="twitter:description" content="Rip it open to find out what's inside. It's probably terrible.">
-  <meta name="twitter:image" content="https://unwrap-roulette.vercel.app/og.jpg?v=2">
+  <meta name="twitter:image" content="https://unwrap-roulette.vercel.app/og.jpg?v=3">
   <meta name="author" content="Marcelo Reis Melo">
   <link rel="author" href="https://marceloreismelo.com/">
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebApplication", "name": "Unwrap Roulette", "url": "https://unwrap-roulette.vercel.app/", "isAccessibleForFree": true, "creator": {"@type": "Person", "@id": "https://marceloreismelo.com/#person", "name": "Marcelo Reis Melo", "url": "https://marceloreismelo.com/", "jobTitle": "Executive Creative Director"}, "author": {"@id": "https://marceloreismelo.com/#person"}, "applicationCategory": "Experiment"}</script>
@@ -1381,8 +1381,8 @@ $('#sheet-form').addEventListener('submit', async e=>{
   const text=`${to?to+', ':''}${from||'Someone'} sent you a gift. Unwrap it (it's probably terrible):`;
   try{
     if(navigator.share && matchMedia('(pointer:coarse)').matches){ await navigator.share({ title:'Unwrap Roulette', text, url }); closeSheet(); return; }
-    await navigator.clipboard.writeText(url); $('#sheet-done').textContent='Link copied! Paste it to them.';
-  }catch(_){ $('#sheet-done').textContent=url; }
+    await navigator.clipboard.writeText(`${text} ${url}`); $('#sheet-done').textContent='Message and link copied! Paste it to them.';   // the note and the link travel together
+  }catch(_){ $('#sheet-done').textContent=`${text} ${url}`; }
 });
 if(sharedGift){
   const who = sharedGift.from || 'Someone';
@@ -1390,6 +1390,7 @@ if(sharedGift){
   $('#intro-from').hidden=false;
   $('#start-btn').textContent='UNWRAP IT';
   $('#intro-note').textContent='No refunds. No receipts. Grab the paper and rip.';
+  $('#hint').textContent = (sharedGift.to ? sharedGift.to+', ' : '') + who + ' sent you a gift. Grab the paper and rip it open.';
 }
 // ---------------------------------------------------------------- intro
 // An endless pile of gifts: real rigid boxes (cannon-es) drop in, land, rock and settle on each other, and the camera
@@ -1529,6 +1530,12 @@ $('#start-btn').onclick=()=>{ Audio.unlock(); enableGyro(); intro.classList.remo
   topplePile();
   setTimeout(()=>{ $('#bar').classList.remove('off'); if(!firstTear) $('#hint').classList.remove('gone'); }, 2200); };
 
+// a shared link skips the intro: the table colour fades in and their gift falls straight onto it
+function openSharedGift(){
+  intro.classList.add('hidden'); pile.on=false;
+  const s=showcase; s.leaving=true; s.lt=1.05; s.fade=1;
+  addEventListener('pointerup', ()=>{ Audio.unlock(); enableGyro(); }, { once:true });   // sound and tilt need a tap first
+  setTimeout(()=>{ $('#bar').classList.remove('off'); if(!firstTear) $('#hint').classList.remove('gone'); }, 1200); }
 
 // ---------------------------------------------------------------- boot
 (async function boot(){
@@ -1536,7 +1543,7 @@ $('#start-btn').onclick=()=>{ Audio.unlock(); enableGyro(); intro.classList.remo
   try{ if(sharedGift){ gift={v:sharedGift.v,p:sharedGift.p,s:sharedGift.s}; newGift(true); } else newGift(false); }catch(e){ window.__bootErr=String(e.stack||e); console.error('boot '+window.__bootErr); }
   warmPatterns();
   requestAnimationFrame(t=>{ lastT=t; requestAnimationFrame(frame); });
-  requestAnimationFrame(()=> intro.classList.add('show'));
+  if(sharedGift) openSharedGift(); else requestAnimationFrame(()=> intro.classList.add('show'));
   window.__unwrap = { get S(){ return S; }, perf, newGift, get grab(){ return grab; }, get present(){ return present; }, slide, pile, get VP(){ return VP; }, get boxH(){ return boxH; }, get M(){ return Math.max(lidW,lidH); } };
 })();
 </script>
