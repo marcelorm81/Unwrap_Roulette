@@ -22,15 +22,15 @@
     .intro{ position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:center; padding:0 16px max(28px, env(safe-area-inset-bottom)); transition:opacity .5s ease; pointer-events:none; }
     .intro .intro-inner{ pointer-events:auto; }
     .intro.hidden, .intro.hidden .intro-inner{ opacity:0; pointer-events:none; visibility:hidden; transition:opacity .5s ease, visibility 0s .5s; }
-    .intro-inner{ background:#B31313; color:#000; width:min(400px, 100%); padding:20px 22px; border-radius:14px;
+    .intro-inner{ background:var(--gift-deep, #B31313); color:var(--gift-deep-ink, #000); transition:background .6s ease, color .6s ease; width:min(400px, 100%); padding:20px 22px; border-radius:14px;
       box-shadow:0 24px 60px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.06); text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
       transform:translateY(10px) scale(.98); opacity:0; transition:opacity .45s cubic-bezier(.2,.8,.2,1), transform .45s cubic-bezier(.2,.8,.2,1); }
     .intro.show .intro-inner{ opacity:1; transform:none; }
     .intro-title{ font-family:'Pixelify Sans',sans-serif; font-weight:700; letter-spacing:2px; font-size:clamp(30px, 5vw, 42px); line-height:.82; }
-    .intro-btn{ background:#111; color:#F03B2C; border:none; padding:12px 22px; border-radius:8px; font-family:'Pixelify Sans',sans-serif; font-weight:700; letter-spacing:1px; font-size:15px; cursor:pointer; transition:transform .1s ease, background .2s ease, color .2s ease; }
+    .intro-btn{ background:#111; color:var(--accent, #F03B2C); border:none; padding:12px 22px; border-radius:8px; font-family:'Pixelify Sans',sans-serif; font-weight:700; letter-spacing:1px; font-size:15px; cursor:pointer; transition:transform .1s ease, background .2s ease, color .2s ease; }
     .intro-btn:hover{ background:#FFD700; color:#000; }
     .intro-btn:active{ transform:translateY(1px) scale(.99); }
-    .intro-note{ margin:0; color:#111; opacity:.85; font:12px/1.45 'Courier Prime', monospace; }
+    .intro-note{ margin:0; color:inherit; opacity:.85; font:12px/1.45 'Courier Prime', monospace; }
 
     /* Toolbar */
     .bar{ position:absolute; left:50%; bottom:max(14px, env(safe-area-inset-bottom)); transform:translateX(-50%);
@@ -52,10 +52,13 @@
     .actions{ position:absolute; inset:0; pointer-events:none; transition:opacity .35s ease; }
     .actions.off{ opacity:0; }
     .actions.off *{ pointer-events:none !important; }
-    .next, .share{ position:absolute; bottom:max(18px, env(safe-area-inset-bottom)); height:50px; padding:0 22px; border:0; border-radius:14px; cursor:pointer; pointer-events:auto;
-      font:700 16px/1 'Pixelify Sans', system-ui, sans-serif; letter-spacing:1px; box-shadow:0 12px 30px rgba(0,0,0,.3); transition:opacity .35s ease, transform .35s cubic-bezier(.2,.9,.25,1.2), background .15s ease; }
+    .next, .share, .prev{ position:absolute; bottom:max(18px, env(safe-area-inset-bottom)); height:40px; padding:0 16px; border:0; border-radius:11px; cursor:pointer; pointer-events:auto;
+      font:700 14px/1 'Pixelify Sans', system-ui, sans-serif; letter-spacing:1px; box-shadow:0 10px 24px rgba(0,0,0,.28); transition:opacity .35s ease, transform .35s cubic-bezier(.2,.9,.25,1.2), background .15s ease; }
     .next, .share{ color:var(--accent, #F03B2C); background:#111; transition:opacity .35s ease, transform .35s cubic-bezier(.2,.9,.25,1.2), background .15s ease, color .6s ease; }
-    .next:hover, .share:hover{ background:#000; filter:brightness(1.12); }
+    .next:hover, .share:hover, .prev:hover{ background:#000; filter:brightness(1.12); }
+    /* discreet previous: a small square left of Next, only once there's somewhere to go back to */
+    .prev{ width:40px; padding:0; color:var(--accent, #F03B2C); background:rgba(17,17,17,.55); box-shadow:none; opacity:0; pointer-events:none; transition:opacity .3s ease, background .15s ease, color .6s ease; }
+    .prev.show{ opacity:1; pointer-events:auto; }
     .next{ right:max(16px, env(safe-area-inset-right)); }
     .share{ left:max(16px, env(safe-area-inset-left)); }
     /* once there's something to see, Next gift wiggles to say "go on" */
@@ -121,6 +124,7 @@
   <div class="hint gone" id="hint">Grab the paper and keep dragging to rip it off</div>
   <select id="pattern" hidden aria-hidden="true"></select>
   <div class="actions off" id="bar">
+    <button class="prev" id="prev" title="Previous gift" aria-label="Previous gift">←</button>
     <button class="next" id="next" title="Next gift (R)">Next gift →</button>
     <button class="share" id="send" title="Share this gift with someone">Share</button>
     <button class="snd-top" id="snd" title="Sound (M)" aria-label="Sound">♪</button>
@@ -439,7 +443,7 @@ void main(){
   float soft = mix(1.0, smoothstep(-0.06-uLift*0.4, 0.32+uLift*1.2, d1), 1.0/(1.0+uLift*3.0));
   float d0 = sdBox(bp, uHalf);
   float ao = mix(smoothstep(0.0, 0.05, d0), 1.0, smoothstep(0.0, 0.08, uLift));
-  float vig = 1.0 - 0.45*smoothstep(0.6, 3.2, length(vPos.xy*vec2(0.8,1.0)));
+  float vig = 1.0 - 0.22*smoothstep(0.8, 3.0, length(vPos.xy*vec2(0.8,1.0)));   // gentle, so the far table reads as one even backdrop
   float n = hash12(floor(gl_FragCoord.xy))*0.03-0.015;
   float sh = shadowAt(vPos, vec3(0,0,1));
   float shade = min(0.5+0.5*soft, mix(0.52, 1.0, sh)) * mix(0.55, 1.0, contactAt(vPos));
@@ -881,7 +885,7 @@ function buildStatic(){
   const WP=[], WN=[], WU=[], th=0.012*Math.min(lidW,lidH); const wq=(a,b,n)=>{ a=[a[0]+n[0]*th,a[1]+n[1]*th]; b=[b[0]+n[0]*th,b[1]+n[1]*th]; const v=[[a[0],a[1],-0.002],[a[0],a[1],D],[b[0],b[1],D],[a[0],a[1],-0.002],[b[0],b[1],D],[b[0],b[1],-0.002]], u=[[0,0],[0,1],[1,1],[0,0],[1,1],[1,0]]; for(let k=0;k<6;k++){ WP.push(...v[k]); WN.push(...n); WU.push(...u[k]); } };
   wq([-hx,-hy],[hx,-hy],[0,1,0]); wq([hx,hy],[-hx,hy],[0,-1,0]); wq([-hx,hy],[-hx,-hy],[1,0,0]); wq([hx,-hy],[hx,hy],[-1,0,0]);
   mesh.walls = makeVAO(new Float32Array(WP), new Float32Array(WN), new Float32Array(WU));
-  const T=8; mesh.table = makeVAO(new Float32Array([-T,T,-H, -T,-T,-H, T,-T,-H, -T,T,-H, T,-T,-H, T,T,-H]), null, new Float32Array(12));
+  const T=30; mesh.table = makeVAO(new Float32Array([-T,T,-H, -T,-T,-H, T,-T,-H, -T,T,-H, T,-T,-H, T,T,-H]), null, new Float32Array(12));
 }
 function makeVAO(p,n,u){ const vao=gl.createVertexArray(); gl.bindVertexArray(vao); attrib(0,vbo(p),3); if(n) attrib(1,vbo(n),3); else { gl.disableVertexAttribArray(1); gl.vertexAttrib3f(1,0,0,1); } attrib(2,vbo(u),2); gl.bindVertexArray(null); return {vao,count:p.length/3}; }
 
@@ -935,7 +939,12 @@ function accentFor(hex){
 }
 function applyPattern(p){
   const rs=document.documentElement.style; rs.setProperty('--accent', accentFor(p.bg)); rs.setProperty('--gift', p.bg);
-  { const [r,g,b]=[1,3,5].map(i=>parseInt(p.bg.slice(i,i+2),16)); rs.setProperty('--gift-ink', (0.2126*r+0.7152*g+0.0722*b)<140 ? '#fff' : '#000'); }
+  { const [r,g,b]=[1,3,5].map(i=>parseInt(p.bg.slice(i,i+2),16)); rs.setProperty('--gift-ink', (0.2126*r+0.7152*g+0.0722*b)<140 ? '#fff' : '#000');
+    // a deeper shade of the gift colour for the intro card: richer on light tables, lifted on dark ones
+    const L=0.2126*r+0.7152*g+0.0722*b, avg=(r+g+b)/3, sat=c=>avg+(c-avg)*1.35;
+    // light table -> deep dark card; dark table -> pale light card
+    const d=[r,g,b].map(c=>Math.max(0,Math.min(255,Math.round(L>140 ? sat(c)*0.42 : sat(c)+(255-sat(c))*0.72))));   // much darker and a touch more saturated, so the card pops off the table
+    rs.setProperty('--gift-deep', `rgb(${d.join(',')})`); rs.setProperty('--gift-deep-ink', (0.2126*d[0]+0.7152*d[1]+0.0722*d[2])<140 ? '#fff' : '#000'); }
   pattern=p;
   patTex = texture(p.draw(), {repeat:true}, patTex);
   document.documentElement.style.setProperty('--bg', p.bg);
@@ -1096,18 +1105,25 @@ function render(){
   gl.enable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(2,4);
   gl.useProgram(P.shadow.p); gl.uniformMatrix4fv(P.shadow.u.uLightVP,false,lightVP); gl.uniformMatrix4fv(P.shadow.u.uModel,false,MODEL);
   gl.uniform1f(P.shadow.u.uAlpha,0);
+  const hideMain=introMainHidden(), pk=1-Math.pow(pile.pop,2);
+  if(!hideMain){
   gl.bindVertexArray(mesh.cloth.vao); gl.drawElements(gl.TRIANGLES, mesh.cloth.count, gl.UNSIGNED_INT, 0);
   gl.bindVertexArray(mesh.sides.vao); gl.drawArrays(gl.TRIANGLES,0,mesh.sides.count);
   gl.bindVertexArray(mesh.walls.vao); gl.drawArrays(gl.TRIANGLES,0,mesh.walls.count);
+  }
+  if(pile.on) for(const b of pile.boxes){ gl.uniformMatrix4fv(P.shadow.u.uModel,false,pileModel(b,pk));
+    gl.bindVertexArray(mesh.cloth.vao); gl.drawElements(gl.TRIANGLES, mesh.cloth.count, gl.UNSIGNED_INT, 0);
+    gl.bindVertexArray(mesh.sides.vao); gl.drawArrays(gl.TRIANGLES,0,mesh.sides.count); }
   gl.disable(gl.POLYGON_OFFSET_FILL);
 
   // main pass
   gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0,0,canvas.width,canvas.height);
-  const tg=hexLin(pattern.bg); if(!bgCur) bgCur=tg.slice(); for(let i=0;i<3;i++) bgCur[i]+=(tg[i]-bgCur[i])*0.08; const bg=bgCur;   // table colour fades between gifts gl.clearColor(Math.pow(bg[0],1/2.2),Math.pow(bg[1],1/2.2),Math.pow(bg[2],1/2.2),1); gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  const tg=hexLin(pattern.bg); if(!bgCur) bgCur=tg.slice(); for(let i=0;i<3;i++) bgCur[i]+=(tg[i]-bgCur[i])*0.08; const bg=bgCur;   /* table colour fades between gifts */ gl.clearColor(Math.pow(bg[0],1/2.2),Math.pow(bg[1],1/2.2),Math.pow(bg[2],1/2.2),1); gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
 
   gl.useProgram(P.table.p); bindCommon(P.table, IDENT); gl.uniform3fv(P.table.u.uBg,bg); gl.uniform2f(P.table.u.uHalf,lidW/2,lidH/2); gl.uniform1f(P.table.u.uBoxH,boxH); gl.uniform1f(P.table.u.uLift,showcase.lift); gl.uniform2f(P.table.u.uSlide,slide.x,0);
   gl.bindVertexArray(mesh.table.vao); gl.drawArrays(gl.TRIANGLES,0,mesh.table.count);
 
+  if(!hideMain){
   gl.useProgram(P.lid.p); bindCommon(P.lid); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,lidTex); gl.uniform1i(P.lid.u.uTex,0); gl.uniform2f(P.lid.u.uLid,lidW,lidH);
   gl.bindVertexArray(mesh.lid.vao); gl.drawArrays(gl.TRIANGLES,0,mesh.lid.count);
   gl.useProgram(P.walls.p); bindCommon(P.walls);
@@ -1116,6 +1132,13 @@ function render(){
   gl.useProgram(P.fabric.p); bindCommon(P.fabric); fabricUniforms(P.fabric);
   gl.bindVertexArray(mesh.sides.vao); gl.drawArrays(gl.TRIANGLES,0,mesh.sides.count);
   gl.bindVertexArray(mesh.cloth.vao); gl.drawElements(gl.TRIANGLES, mesh.cloth.count, gl.UNSIGNED_INT, 0);
+  }
+  if(pile.on){ const pr=P.fabric, u=pr.u; gl.useProgram(pr.p); bindCommon(pr); fabricUniforms(pr);
+    for(const b of pile.boxes){ const p=b.pat, m=p.mat;
+      gl.uniformMatrix4fv(u.uModel,false,pileModel(b,pk)); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,pileTexFor(p));
+      if(u.uSheen){ gl.uniform1f(u.uSheen,m.sheen); gl.uniform1f(u.uVelvet,m.velvet); gl.uniform1f(u.uExp,m.exp); gl.uniform1f(u.uThreads,m.threads); }
+      gl.bindVertexArray(mesh.sides.vao); gl.drawArrays(gl.TRIANGLES,0,mesh.sides.count);
+      gl.bindVertexArray(mesh.cloth.vao); gl.drawElements(gl.TRIANGLES, mesh.cloth.count, gl.UNSIGNED_INT, 0); } }
 
   if(mesh.cloth.fcount){ gl.useProgram(P.fiber.p); bindCommon(P.fiber); fabricUniforms(P.fiber);
     gl.bindVertexArray(mesh.cloth.fvao); gl.vertexAttrib3f(1,0,0,1); gl.drawArrays(gl.LINES,0,mesh.cloth.fcount); }
@@ -1171,19 +1194,29 @@ function frame(now){
 // ---------------------------------------------------------------- UI
 const sel=$('#pattern'); sel.innerHTML='<option value="random">Random</option>'+PATTERNS.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
 sel.addEventListener('change',()=>{ applyPattern(choosePattern()); sel.blur(); });
-const slide={ on:false, phase:0, t:0, x:0 };
-function nextGift(){ if(slide.on || showcase.k>0) return; Audio.unlock(); releaseGrab(); slide.on=true; slide.phase=1; slide.t=0; }
+const slide={ on:false, phase:0, t:0, x:0, dir:1, to:null };
+const past=[], ahead=[];
+function go(dir){ if(slide.on || showcase.k>0) return;
+  if(dir<0 && !past.length) return;
+  Audio.unlock(); releaseGrab();
+  if(dir>0){ past.push(gift); slide.to = ahead.length ? ahead.pop() : null; }
+  else { ahead.push(gift); slide.to = past.pop(); }
+  slide.dir=dir; slide.on=true; slide.phase=1; slide.t=0; }
+function nextGift(){ go(1); }
+function prevGift(){ go(-1); }
+function updatePrev(){ const b=$('#prev'); if(!b) return; b.classList.toggle('show', past.length>0); const n=$('#next'); b.style.right=(innerWidth-n.getBoundingClientRect().left+8)+'px'; }
 function updateSlide(dt){
   if(!slide.on) return;
   const D=2.4*Math.max(lidW,lidH); slide.t=Math.min(1, slide.t+dt/0.55);
-  if(slide.phase===1){ const e=slide.t*slide.t*slide.t; slide.x=-D*e;                     // ease in: whoosh off to the left
-    if(slide.t>=1){ newGift(false); slide.phase=2; slide.t=0; slide.x=2.4*Math.max(lidW,lidH); } }
-  else { const e=1-Math.pow(1-slide.t,3); slide.x=D*(1-e);                                 // ease out: glide in from the right
+  const dir=slide.dir;
+  if(slide.phase===1){ const e=slide.t*slide.t*slide.t; slide.x=-dir*D*e;                   // whoosh off (left for next, right for previous)
+    if(slide.t>=1){ if(slide.to){ gift=slide.to; newGift(true); } else newGift(false); slide.phase=2; slide.t=0; slide.x=dir*2.4*Math.max(lidW,lidH); updatePrev(); } }
+  else { const e=1-Math.pow(1-slide.t,3); slide.x=dir*D*(1-e);                             // glide in from the other side
     if(slide.t>=1){ slide.on=false; slide.x=0; } }
   const r=slide.x*0.12, c=Math.cos(r), sn=Math.sin(r);
   MODEL = slide.x===0 ? IDENT : new Float32Array([c,sn,0,0, -sn,c,0,0, 0,0,1,0, slide.x,0,0,1]);
 }
-$('#next').onclick=nextGift;
+$('#next').onclick=nextGift; $('#prev').onclick=prevGift; addEventListener('resize', updatePrev);
 $('#snd').onclick=()=>{ Audio.unlock(); Audio.toggle(); };
 function exportPNG(){ render(); const a=document.createElement('a'); a.download=`unwrap-${Date.now()}.png`; a.href=canvas.toDataURL('image/png'); a.click(); }
 window.addEventListener('keydown',e=>{
@@ -1229,16 +1262,64 @@ if(sharedGift){
 // intro: the wrapped box floats above the table, spinning and tumbling; START drops it into place
 const showcase={ k:1, t:0, spin:-0.6, lift:0, leaving:false, p:0 };
 const IDENT=new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]); let MODEL=IDENT;  // identity: box stays on the table
-function updateShowcase(dt){
-  // turntable: the box rests on the table and the camera orbits it; START eases back into the play view
-  const s=showcase; s.t+=dt;
-  if(!s.leaving) s.spin+=dt*0.35;
-  else { s.p=Math.min(1, s.p+dt/1.4); if(s.p>=1){ s.k=0; setView(cam.yaw,cam.pitch); return; } }
-  const e=1-(s.p*s.p*(3-2*s.p));
-  setView(lerp(cam.yaw, s.spin, e), lerp(cam.pitch, 0.5, e), lerp(1, 1.35, e));
+// Intro: gifts in every pattern keep dropping and piling up (endless loop). On START the pile pops away
+// and your gift drops from the sky onto the table.
+const pile={ on:true, boxes:[], spawn:0.2, pop:0, popping:false, ending:false, top:0, camTop:0, frame:-0.2 };
+const drop={ on:false, t:0, base:0, landed:false };
+const pileTex={};
+function pileTexFor(p){ return pileTex[p.id] || (pileTex[p.id]=texture(p.draw(), {repeat:true})); }
+function pileModel(b, k){
+  const sc=b.sc*k, c=Math.cos(b.rz), sn=Math.sin(b.rz), z=-boxH+boxH*sc+b.base;
+  return new Float32Array([c*sc,sn*sc,0,0, -sn*sc,c*sc,0,0, 0,0,sc,0, b.x,b.y,z,1]);
 }
+function updatePile(dt){
+  if(!pile.on) return;
+  const M=Math.max(lidW,lidH);
+  if(pile.popping){ pile.pop=Math.min(1, pile.pop+dt/0.4);
+    if(pile.pop>=1){ pile.boxes.length=0; pile.popping=false; pile.pop=0; pile.spawn=0.25; if(pile.ending) pile.on=false; }
+    return; }
+  pile.spawn-=dt;
+  if(pile.spawn<=0 && !pile.ending){ pile.spawn=0.42+Math.random()*0.18;
+    const r=Math.sqrt(Math.random())*0.32*M, a=Math.random()*6.283;
+    pile.boxes.push({ x:Math.cos(a)*r, y:Math.sin(a)*r, base:pile.top+1.8*M, vz:0, rz:Math.random()*6.283, wz:(Math.random()-.5)*4, sc:0.42+Math.random()*0.32,
+      pat:PATTERNS[(Math.random()*PATTERNS.length)|0], landed:false }); }
+  let top=0;
+  for(const b of pile.boxes){
+    const h=boxH*b.sc, rb=Math.hypot(lidW,lidH)*0.5*b.sc;
+    if(!b.landed){
+      b.vz-=7.5*dt; b.base+=b.vz*dt; b.rz+=b.wz*dt;
+      let rest=0; for(const o of pile.boxes){ if(o===b || !o.landed) continue; const ro=Math.hypot(lidW,lidH)*0.5*o.sc;
+        if(Math.hypot(o.x-b.x,o.y-b.y) < (rb+ro)*0.62) rest=Math.max(rest, o.base+boxH*o.sc); }
+      if(b.base<=rest){ b.base=rest; if(b.vz<-1.1){ b.vz*=-0.22; b.wz*=0.4; } else { b.vz=0; b.landed=true; } }
+    }
+    if(b.landed) top=Math.max(top, b.base+h);
+  }
+  // endless: the pile just keeps growing and the camera rises with it; old boxes far below quietly go away
+  pile.top=Math.max(pile.top, top); pile.camTop += (pile.top-pile.camTop)*Math.min(1, dt*1.6);
+  while(pile.boxes.length>30 && pile.boxes[0].landed) pile.boxes.shift();
+}
+function updateShowcase(dt){
+  const s=showcase; s.t+=dt; updatePile(dt);
+  if(!s.leaving) s.spin+=dt*0.25;
+  else { s.p=Math.min(1, s.p+dt/1.6); }
+  // your gift falls from the sky, lands with a squash and a small bounce
+  if(drop.on){ drop.t+=dt; const M=Math.max(lidW,lidH), T=0.55, h0=2.4*M;
+    if(drop.t<T){ const a=drop.t/T; drop.base=h0*(1-a*a); MODEL=new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,drop.base,1]); }
+    else { if(!drop.landed){ drop.landed=true; if(navigator.vibrate) navigator.vibrate(18); }
+      const b=(drop.t-T)/0.5, bz=Math.max(0, 0.06*M*Math.sin(Math.PI*Math.min(1,b*1.8))*(1-b)), sq=0.12*Math.exp(-b*8)*Math.cos(b*24);
+      drop.base=bz; MODEL = b>=1 ? IDENT : new Float32Array([1+sq*0.5,0,0,0, 0,1+sq*0.5,0,0, 0,0,1-sq,0, 0,0,bz-boxH*sq,1]);
+      if(b>=1){ drop.on=false; drop.base=0; MODEL=IDENT; } } }
+  showcase.lift = (pile.on && !drop.on && !s.leaving) ? 8 : drop.base;
+  if(s.leaving && s.p>=1 && !drop.on && !pile.on){ s.k=0; setView(cam.yaw,cam.pitch); return; }
+  const e=1-(s.p*s.p*(3-2*s.p)), M=Math.max(lidW,lidH);
+  // front-on, low camera (like looking at a pile of presents on a table)
+  setView(lerp(cam.yaw, 0, e), lerp(cam.pitch, 0.62, e), lerp(1, 1.15, e), (pile.frame*M + pile.camTop)*e);   // fixed front view: no sway, no mouse parallax
+}
+function introMainHidden(){ return showcase.k>0 && !drop.on && !(showcase.leaving && !pile.on); }
 $('#start-btn').onclick=()=>{ Audio.unlock(); intro.classList.remove('show'); intro.classList.add('hidden'); 
   const sc=showcase; sc.spin=Math.atan2(Math.sin(sc.spin), Math.cos(sc.spin)); sc.p=0; sc.leaving=true;
+  pile.ending=true; pile.popping=true; pile.pop=0;                            // the pile pops away...
+  setTimeout(()=>{ drop.on=true; drop.t=0; drop.landed=false; }, 300);       // ...and your gift drops in
   setTimeout(()=>{ $('#bar').classList.remove('off'); if(!firstTear) $('#hint').classList.remove('gone'); }, 900); };
 
 
@@ -1248,7 +1329,7 @@ $('#start-btn').onclick=()=>{ Audio.unlock(); intro.classList.remove('show'); in
   try{ if(sharedGift){ gift={v:sharedGift.v,p:sharedGift.p,s:sharedGift.s}; newGift(true); } else newGift(false); }catch(e){ window.__bootErr=String(e.stack||e); console.error('boot '+window.__bootErr); }
   requestAnimationFrame(t=>{ lastT=t; requestAnimationFrame(frame); });
   requestAnimationFrame(()=> intro.classList.add('show'));
-  window.__unwrap = { get S(){ return S; }, perf, newGift, get grab(){ return grab; }, get present(){ return present; }, slide };
+  window.__unwrap = { get S(){ return S; }, perf, newGift, get grab(){ return grab; }, get present(){ return present; }, slide, pile, get VP(){ return VP; }, get boxH(){ return boxH; }, get M(){ return Math.max(lidW,lidH); } };
 })();
 </script>
 </body>
