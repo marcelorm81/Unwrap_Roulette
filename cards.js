@@ -17,6 +17,7 @@
     gmail: ['700 40px "Space Grotesk"','400 40px "Space Grotesk"'], notif: ['700 40px "Space Grotesk"'], chat: ['700 40px "Space Grotesk"','400 40px "Space Grotesk"'],
     stream: ['400 40px "Bebas Neue"','700 40px "Space Grotesk"'], calendar: ['400 40px "Anton"','700 40px "Space Grotesk"'],
     infomercial: ['400 40px "Anton"','700 40px "Comic Neue"','400 40px "Chewy"'], headline: ['400 40px "Anton"','italic 600 40px "Cormorant Garamond"','700 40px "Space Grotesk"'],
+    gas: ['400 40px "Anton"','700 40px "Space Grotesk"','400 40px "VT323"'],
     policy: ['700 40px "Playfair Display"','700 40px "Space Grotesk"','400 40px "Space Grotesk"'],
     rx: ['700 40px "Playfair Display"','700 40px "Space Grotesk"','italic 600 40px "Cormorant Garamond"'], webhost: ['700 40px "Space Grotesk"','400 40px "Anton"','600 40px "IBM Plex Mono"'],
   };
@@ -25,7 +26,7 @@
   // ---------- helpers
   const rnd = seed => { let a=seed|0; return ()=>{ a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; };
   const hashStr = s => { let h=2166136261; for(const c of s){ h^=c.charCodeAt(0); h=Math.imul(h,16777619); } return h>>>0; };
-  function wrap(g,text,maxW){ const words=text.split(/\s+/), out=[]; let cur=''; for(const w of words){ const t=cur?cur+' '+w:w; if(g.measureText(t).width<=maxW||!cur) cur=t; else { out.push(cur); cur=w; } } if(cur) out.push(cur); return out; }
+  function wrap(g,text,maxW){ const words=text.split(/ +/), out=[]; let cur=''; for(const w of words){ const t=cur?cur+' '+w:w; if(g.measureText(t).width<=maxW||!cur) cur=t; else { out.push(cur); cur=w; } } if(cur) out.push(cur); return out; }
   // largest size where text wraps into the box
   function fit(g, text, fontFn, maxW, maxH, lh=1.02, maxSize=200, minSize=10){
     maxSize=Math.round(maxSize); for(let s=maxSize; s>=minSize; s-=2){ g.font=fontFn(s); const L=wrap(g,text,maxW); if(L.every(l=>g.measureText(l).width<=maxW) && L.length*s*lh<=maxH) return {size:s, lines:balance(g,text,L,maxW)}; }
@@ -196,7 +197,7 @@
     g.strokeStyle='#7C8C6E'; g.lineWidth=2; const m=Math.min(W,H)*.05; g.strokeRect(m,m,W-m*2,H-m*2);
     const L=split(W,H,m*2,.42); const [ix,iy,iw,ih]=L.img; g.fillStyle='#DCE3D2'; g.beginPath(); g.ellipse(ix+iw/2,iy+ih/2,Math.min(iw,ih)*.48,Math.min(iw,ih)*.48,0,0,7); g.fill(); shot(g,img,ix+iw*.05,iy+ih*.05,iw*.9,ih*.9);
     const [tx,ty,tw,th]=L.txt; const cx=tx+tw/2; g.fillStyle='#4F5D44';
-    const bf=fit(g,v.brand.toUpperCase().split('').join(' '),s=>`600 ${s}px "Cormorant Garamond"`, tw, th*.08, 1, th*.055); lines(g,bf,cx,ty);
+    const bf=fit(g,v.brand.toUpperCase().split(' ').map(w=>w.split('').join('\u2009')).join('\u2003\u2002'),s=>`600 ${s}px "Cormorant Garamond"`, tw, th*.08, 1, th*.055); lines(g,bf,cx,ty);
     g.fillRect(cx-tw*.08, ty+th*.11, tw*.16, 2);
     g.font=`italic 600 ${Math.round(th*.07)}px "Cormorant Garamond"`; g.textAlign='center'; g.textBaseline='top'; g.fillText('a gift of calm', cx, ty+th*.15);
     const f=fit(g, v.text, s=>`italic 600 ${s}px "Cormorant Garamond"`, tw, th*.42, 1.0, th*.22); g.fillStyle='#2F3A28'; lines(g,f,cx,ty+th*.28+(th*.42-f.lines.length*f.size)/2,1.0);
@@ -355,9 +356,9 @@
     y+=sf.lines.length*sf.size*1.08+md*.04;
     const ar=md*.04; avatar(g,pad+ar,y+ar,ar,'#4285f4'); g.fillStyle=ink; g.font=SANS(700,md*.034); g.fillText(v.brand, pad+ar*2.6, y); g.fillStyle=mute; g.font=SANS(400,md*.028);
     g.fillText('<noreply@'+handle(v).replace(/_/g,'')+'.com>  to me', pad+ar*2.6, y+md*.045); g.textAlign='right'; g.fillText('9:41 AM  ☆', W-pad, y); g.textAlign='left';
-    y+=ar*2+md*.05; const L=split(W,H-y-md*.13,pad,.36), [ix,iy,iw,ih]=L.img, [tx,ty,tw,th]=L.txt;
-    g.fillStyle='#f1f3f4'; rr(g,ix,iy+y,iw,ih,md*.02); g.fill(); shot(g,img,ix+iw*.1,iy+y+ih*.1,iw*.8,ih*.8);
-    g.fillStyle=ink; g.font=SANS(400,md*.032); g.fillText('Hi you,', tx, ty+y); const bf=fit(g,v.fine,s2=>SANS(700,s2),tw,th-md*.08,1.2,md*.055); lines(g,bf,tx,ty+y+md*.06,1.2,'left');
+    y+=ar*2+md*.04; const foot=H-pad-md*.1, ih=(foot-y)*(W/H>=1.05?.52:.45), iw=W-pad*2;
+    g.fillStyle='#f1f3f4'; rr(g,pad,y,iw,ih,md*.02); g.fill(); shot(g,img,pad+iw*.3,y+ih*.08,iw*.4,ih*.84); y+=ih+md*.04;
+    g.fillStyle=ink; g.font=SANS(400,md*.032); g.fillText('Hi you,', pad, y); const bf=fit(g,v.fine,s2=>SANS(700,s2),W-pad*2,foot-y-md*.07,1.2,md*.06); lines(g,bf,pad,y+md*.055,1.2,'left');
     const by=H-pad-md*.07; g.lineWidth=2; g.strokeStyle='#747775'; g.font=SANS(700,md*.03); ['↩ Reply','↪ Forward'].forEach((t,i)=>{ const bx=pad+i*md*.24; rr(g,bx,by,md*.21,md*.07,md*.035); g.stroke(); g.fillStyle=ink; g.textBaseline='middle'; g.fillText(t,bx+md*.035,by+md*.035); g.textBaseline='top'; });
   };
 
@@ -382,6 +383,7 @@
     g.fillStyle=ink; g.textAlign='left'; g.textBaseline='top'; g.font=SANS(700,md*.038); g.fillText(v.brand+' ⌄', pad, pad*.9);
     g.fillStyle='#10a37f'; rr(g,W-pad-md*.22,pad*.75,md*.22,md*.07,md*.035); g.fill(); g.fillStyle='#fff'; g.font=SANS(700,md*.03); g.textAlign='center'; g.fillText('FREE PLAN', W-pad-md*.11, pad*.75+md*.02);
     g.textAlign='left'; g.fillStyle=ink; const tf=fit(g,v.text,s2=>SANS(700,s2),W-pad*2,H*.14,1.05,md*.075); let y=lines(g,tf,pad,pad*.9+md*.09,1.05,'left')+md*.05;
+    if(W/H<1.05){ const ih=H*.28; g.fillStyle='#f7f7f8'; rr(g,pad,y,W-pad*2,ih,md*.04); g.fill(); shot(g,img,W*.3,y+ih*.08,W*.4,ih*.84); y+=ih+md*.05; }
     g.font=SANS(400,md*.042); const qL=wrap(g,q,W*.55), qw=Math.max(...qL.map(l=>g.measureText(l).width))+md*.06, qh=qL.length*md*.052+md*.04;
     g.fillStyle='#f4f4f4'; rr(g,W-pad-qw,y,qw,qh,md*.04); g.fill(); g.fillStyle=ink; qL.forEach((l,i)=>g.fillText(l, W-pad-qw+md*.03, y+md*.02+i*md*.052)); y+=qh+md*.05;
     const ar=md*.065; g.fillStyle='#fff'; g.beginPath(); g.arc(pad+ar,y+ar,ar,0,7); g.fill(); g.strokeStyle='#e5e5e5'; g.lineWidth=2; g.stroke(); shot(g,img,pad+ar*.2,y+ar*.2,ar*1.6,ar*1.6,{shadow:false});
@@ -410,28 +412,34 @@
     rr(g,0,0,W,H,md*.03); g.fillStyle='#fbf7ef'; g.fill(); g.save(); g.clip(); g.fillStyle=red; g.fillRect(0,0,W,H*.22); g.restore();
     g.fillStyle='#555'; for(const fx of [.3,.7]){ g.beginPath(); g.arc(W*fx,H*.05,md*.025,0,7); g.fill(); }
     g.fillStyle='#fff'; g.textAlign='center'; g.textBaseline='middle'; const mf=fit(g,(v.month||'FEBRUARY'),s2=>`400 ${s2}px "Anton"`,W*.8,H*.12,1,md*.13); g.font=`400 ${mf.size}px "Anton"`; g.fillText(v.month||'FEBRUARY', W/2, H*.13);
-    g.fillStyle='#1a1a1a'; const dayH=land?H*.5:H*.38; g.font=`400 ${Math.round(dayH)}px "Anton"`; g.textBaseline='top'; g.fillText(v.day||'30', land?W*.3:W/2, H*.24);
-    if(land){ g.textAlign='left'; const tx=W*.52, tw=W*.43; const f=fit(g,v.text,s2=>SANS(700,s2),tw,H*.3,1.05,md*.1); let y=lines(g,f,tx,H*.3,1.05,'left')+md*.03; g.fillStyle=red; const ff=fit(g,v.fine,s2=>SANS(700,s2),tw,H*.16,1.1,md*.05); y=lines(g,ff,tx,y,1.1,'left'); shot(g,img,tx,y+md*.02,tw*.4,H-pad-y-md*.02); }
-    else { const f=fit(g,v.text,s2=>SANS(700,s2),W-pad*2,H*.14,1.05,md*.1); let y=lines(g,f,W/2,H*.64,1.05)+md*.02; g.fillStyle=red; const ff=fit(g,v.fine,s2=>SANS(700,s2),W-pad*2,H*.08,1.1,md*.05); y=lines(g,ff,W/2,y,1.1); shot(g,img,W*.38,y+md*.02,W*.24,H-pad-y-md*.02); }
+    { const d=v.day||'30', top=H*.27, bot=land?H-pad*1.4:H*.6, maxW=land?W*.42:W*.7; let sz=md*1.2, m;
+      for(;sz>20;sz*=.94){ g.font=`400 ${Math.round(sz)}px "Anton"`; m=g.measureText(d); if(m.actualBoundingBoxAscent+m.actualBoundingBoxDescent<=bot-top && m.width<=maxW) break; }
+      g.fillStyle='#1a1a1a'; g.textAlign='center'; g.textBaseline='alphabetic'; g.fillText(d, land?W*.27:W/2, top+m.actualBoundingBoxAscent); }
+    if(land){ g.fillStyle='#1a1a1a'; g.textAlign='left'; const tx=W*.52, tw=W*.43; const f=fit(g,v.text,s2=>SANS(700,s2),tw,H*.3,1.05,md*.1); let y=lines(g,f,tx,H*.3,1.05,'left')+md*.03; g.fillStyle=red; const ff=fit(g,v.fine,s2=>SANS(700,s2),tw,H*.16,1.1,md*.05); y=lines(g,ff,tx,y,1.1,'left'); shot(g,img,tx,y+md*.02,tw*.4,H-pad-y-md*.02); }
+    else { g.fillStyle='#1a1a1a'; const f=fit(g,v.text,s2=>SANS(700,s2),W-pad*2,H*.14,1.05,md*.1); let y=lines(g,f,W/2,H*.64,1.05)+md*.02; g.fillStyle=red; const ff=fit(g,v.fine,s2=>SANS(700,s2),W-pad*2,H*.08,1.1,md*.05); y=lines(g,ff,W/2,y,1.1); shot(g,img,W*.38,y+md*.02,W*.24,H-pad-y-md*.02); }
     g.fillStyle='#999'; g.font=SANS(700,md*.026); g.textAlign='left'; g.textBaseline='bottom'; g.fillText(v.brand, pad, H-pad*.5);
   };
 
   // Loud late-night infomercial
   T.infomercial = (g,W,H,v,img)=>{
-    const md=Math.min(W,H), pad=md*.06, land=W/H>=1.05;
+    const md=Math.min(W,H), pad=md*.07, land=W/H>=1.05;
     g.fillStyle='#ffd400'; g.fillRect(0,0,W,H); g.save(); g.translate(W*.5,H*.55); for(let i=0;i<24;i++){ g.rotate(Math.PI/12); g.fillStyle=i%2?'#ffe95a':'#ffc400'; g.beginPath(); g.moveTo(0,0); g.lineTo(md*2,-md*.26); g.lineTo(md*2,md*.26); g.fill(); } g.restore();
     g.strokeStyle='#1d3fbb'; g.lineWidth=md*.03; g.strokeRect(md*.015,md*.015,W-md*.03,H-md*.03);
-    if(land) shot(g,img,pad,H*.3,W*.34,H*.6); else shot(g,img,W*.25,H*.4,W*.5,H*.26);
-    const tw=land?W*.56:W-pad*2, tx=land?W*.4:pad; g.save(); g.translate(tx+tw/2, land?H*.24:H*.18); g.rotate(-.05);
-    const f=fit(g,v.text.toUpperCase(),s2=>`400 ${s2}px "Anton"`,tw,H*(land?.4:.26),1,md*.17); const fh=f.lines.length*f.size;
+    // headline: centred, WordArt-ish
+    const tw=W-pad*2, th=H*(land?.34:.26); g.save(); g.translate(W/2, pad+th/2); g.rotate(-.035);
+    const f=fit(g,v.text.toUpperCase(),s2=>`400 ${s2}px "Anton"`,tw*.92,th,1,md*.17); const fh=f.lines.length*f.size;
     g.lineJoin='round'; g.textAlign='center'; g.textBaseline='top'; f.lines.forEach((l,i)=>{ const yy=-fh/2+i*f.size; g.font=`400 ${f.size}px "Anton"`;
       g.lineWidth=f.size*.16; g.strokeStyle='#1d3fbb'; g.strokeText(l,0,yy+f.size*.06); const gr=g.createLinearGradient(0,yy,0,yy+f.size); gr.addColorStop(0,'#ff3b30'); gr.addColorStop(1,'#ff9500'); g.fillStyle=gr; g.fillText(l,0,yy); });
     g.restore();
-    const bx=land?W*.86:W*.8, by=land?H*.72:H*.42, br=md*.13; burst(g,bx,by,br,16,'#e10600'); g.save(); g.translate(bx,by); g.rotate(.2); g.fillStyle='#fff'; g.textAlign='center'; g.textBaseline='middle'; g.font=`400 ${Math.round(br*.28)}px "Anton"`; g.fillText('AS SEEN', 0, -br*.16); g.fillText('ON TV!', 0, br*.18); g.restore();
-    g.fillStyle='#1d3fbb'; g.textAlign='center'; g.textBaseline='top'; const cx=land?W*.62:W/2, cyy=land?H*.62:H*.7;
-    const ff=fit(g,v.fine,s2=>`700 ${s2}px "Comic Neue"`,land?W*.5:W-pad*2,H*.12,1.1,md*.05); let y=lines(g,ff,cx,cyy,1.1)+md*.02;
-    g.fillStyle='#e10600'; g.font=`400 ${Math.round(md*.06)}px "Anton"`; g.fillText('CALL 1-800-BROKE-NOW', cx, y);
-    g.fillStyle='#1d3fbb'; g.font=`400 ${Math.round(md*.03)}px "Chewy"`; g.fillText(v.brand+' · operators are standing by (they have nowhere else to go)', W/2, H-md*.065);
+    const top=pad+th+md*.04, foot=H-md*.1;
+    const [ix,iy,iw,ih] = land ? [pad, top, W*.38, foot-top] : [W*.2, top, W*.6, (foot-top)*.48];
+    shot(g,img,ix,iy,iw,ih);
+    const br=md*.11, bx=ix+br*.9, by=iy+br*.9; burst(g,bx,by,br,16,'#e10600'); g.save(); g.translate(bx,by); g.rotate(-.2); g.fillStyle='#fff'; g.textAlign='center'; g.textBaseline='middle'; g.font=`400 ${Math.round(br*.28)}px "Anton"`; g.fillText('AS SEEN', 0, -br*.16); g.fillText('ON TV!', 0, br*.18); g.restore();
+    const cx = land ? W*.71 : W/2, cw = land ? W*.5-pad : W-pad*2, cy0 = land ? top+md*.02 : iy+ih+md*.03;
+    g.fillStyle='#1d3fbb'; g.textAlign='center'; g.textBaseline='top';
+    const ff=fit(g,v.fine,s2=>`700 ${s2}px "Comic Neue"`,cw,(foot-cy0)*.55,1.1,md*.06); let y=lines(g,ff,cx,cy0,1.1)+md*.03;
+    g.fillStyle='#e10600'; const cf=fit(g,'CALL 1-800-BROKE-NOW',s2=>`400 ${s2}px "Anton"`,cw,md*.08,1,md*.07); lines(g,cf,cx,y,1);
+    g.fillStyle='#1d3fbb'; const sf=fit(g,v.brand+' · operators are standing by (they have nowhere else to go)',s2=>`400 ${s2}px "Chewy"`,W-pad*2,md*.04,1,md*.03); lines(g,sf,W/2,H-md*.075,1);
   };
 
   // One giant headline: the prize IS the joke
@@ -455,10 +463,10 @@
     g.fillStyle=blue; g.textAlign='left'; g.textBaseline='top'; g.font=`700 ${Math.round(md*.055)}px "Playfair Display"`; g.fillText('Dr. '+v.brand, pad, pad*.8);
     g.font=SANS(700,md*.028); g.fillText('LICENSED IN NOTHING · EST. YESTERDAY', pad, pad*.8+md*.07); g.fillText('PATIENT: YOU      DATE: TODAY', pad, pad*.8+md*.11);
     g.font=`700 ${Math.round(md*.2)}px "Playfair Display"`; g.fillText('℞', pad, H*.27);
-    if(land) shot(g,img,W*.62,H*.28,W*.32,H*.5); else shot(g,img,W*.55,H*.22,W*.38,H*.22);
-    const tw=land?W*.62-pad-md*.24:W-pad*2, tx=land?pad+md*.2:pad, ty=land?H*.32:H*.47;
-    g.fillStyle='#111'; const f=fit(g,v.text,s2=>`700 ${s2}px "Playfair Display"`,land?tw-md*.04:tw,H*(land?.34:.2),1.08,md*.12); let y=lines(g,f,tx,ty,1.08,'left')+md*.03;
-    g.fillStyle=blue; const ff=fit(g,'Sig: '+v.fine,s2=>`italic 600 ${s2}px "Cormorant Garamond"`,tw,H*.14,1.1,md*.06); y=lines(g,ff,tx,y,1.1,'left');
+    if(land) shot(g,img,W*.62,H*.28,W*.32,H*.5); else shot(g,img,W*.42,H*.2,W*.5,H*.26);
+    const tw=land?W*.62-pad-md*.24:W-pad*2, tx=land?pad+md*.2:pad, ty=land?H*.32:H*.5;
+    g.fillStyle='#111'; const f=fit(g,v.text,s2=>`700 ${s2}px "Playfair Display"`,land?tw-md*.04:tw,H*(land?.34:.22),1.08,md*.16); let y=lines(g,f,tx,ty,1.08,'left')+md*.04;
+    g.fillStyle=blue; const ff=fit(g,'Sig: '+v.fine,s2=>`italic 600 ${s2}px "Cormorant Garamond"`,tw,H*(land?.14:.16),1.1,md*.085); y=lines(g,ff,tx,y,1.1,'left');
     g.strokeStyle=blue; g.lineWidth=md*.006; g.beginPath(); const sx=W-pad-md*.4, sy=H-pad-md*.03; g.moveTo(sx,sy); for(let i=0;i<=40;i++){ const t=i/40; g.lineTo(sx+t*md*.38, sy-Math.sin(t*19)*md*.025*(1-t*.4)-t*md*.02); } g.stroke();
     g.font=SANS(700,md*.024); g.fillStyle=blue; g.textAlign='right'; g.textBaseline='top'; g.fillText('REFILLS: 0', W-pad, H-pad*.9);
   };
@@ -471,14 +479,34 @@
     g.fillStyle='#fff'; rr(g,pad+md*.16,md*.025,W-pad*2-md*.16,md*.06,md*.03); g.fill(); g.fillStyle='#555'; g.font=`600 ${Math.round(md*.028)}px "IBM Plex Mono"`; g.textAlign='left'; g.textBaseline='middle';
     g.fillText('🔓 https://www.'+handle(v).replace(/_/g,'')+'.net/your-link', pad+md*.19, md*.055);
     const top=md*.15; const lg=g.createLinearGradient(0,top,W,H); lg.addColorStop(0,'#f2f6ff'); lg.addColorStop(1,'#fdf2ff'); g.fillStyle=lg; g.fillRect(md*.01,top-md*.03,W-md*.02,H-top+md*.02);
-    if(land) shot(g,img,pad,top+md*.04,W*.36,H-top-md*.12); else shot(g,img,W*.22,top+md*.02,W*.56,H*.28);
-    const tx=land?W*.42:pad, tw=land?W*.53:W-pad*2; let y=land?top+md*.04:top+H*.32;
+    if(land) shot(g,img,pad,top+md*.04,W*.36,H-top-md*.12); else shot(g,img,W*.15,top+md*.02,W*.7,H*.3);
+    const tx=land?W*.42:pad, tw=land?W*.53:W-pad*2; let y=land?top+md*.04:top+H*.34;
     g.fillStyle='#7c3aed'; g.font=`400 ${Math.round(md*.16)}px "Anton"`; g.textBaseline='top'; g.fillText('404', tx, y); y+=md*.17;
     g.fillStyle='#6b7280'; g.font=SANS(700,md*.03); g.fillText('🎉 CONGRATULATIONS, YOU NOW OWN', tx, y); y+=md*.05;
-    g.fillStyle='#111827'; const f=fit(g,v.text,s2=>SANS(700,s2),tw,H*(land?.22:.13),1.05,md*.09); y=lines(g,f,tx,y,1.05,'left')+md*.02;
-    g.fillStyle='#374151'; const ff=fit(g,v.fine,s2=>SANS(400,s2),tw,H*.1,1.15,md*.045); y=lines(g,ff,tx,y,1.15,'left')+md*.03;
+    g.fillStyle='#111827'; const f=fit(g,v.text,s2=>SANS(700,s2),tw,H*(land?.22:.16),1.05,md*.12); y=lines(g,f,tx,y,1.05,'left')+md*.02;
+    g.fillStyle='#374151'; const ff=fit(g,v.fine,s2=>SANS(400,s2),tw,H*(land?.1:.12),1.15,md*.065); y=lines(g,ff,tx,y,1.15,'left')+md*.03;
     g.fillStyle='#7c3aed'; rr(g,tx,y,md*.42,md*.075,md*.04); g.fill(); g.fillStyle='#fff'; g.font=SANS(700,md*.03); g.textBaseline='middle'; g.fillText('Renew for $0.99/year', tx+md*.035, y+md*.0375);
     g.fillStyle='#9ca3af'; g.font=SANS(400,md*.024); g.textBaseline='bottom'; g.fillText('Hosted by '+v.brand+' · 99.9% downtime guaranteed', tx, H-pad*.6);
+  };
+
+  // Gas-station counter deal: canopy stripes, price board, impulse-buy energy
+  T.gas = (g,W,H,v,img)=>{
+    const md=Math.min(W,H), pad=md*.06, land=W/H>=1.05, red='#d62828', blue='#1d4ed8', yel='#ffcc00';
+    rr(g,0,0,W,H,md*.03); g.fillStyle='#fff'; g.fill(); g.save(); g.clip();
+    const sh=md*.035; [red,'#fff',blue,'#fff',yel].forEach((c,i)=>{ g.fillStyle=c; g.fillRect(0,i*sh,W,sh); });
+    g.fillStyle=red; g.fillRect(0,H-md*.06,W,md*.06); g.restore();
+    let y=sh*5+md*.03; g.fillStyle=blue; g.textAlign='left'; g.textBaseline='top'; const hf=fit(g,'FUEL STOP SPECIAL · TODAY ONLY',s2=>`400 ${s2}px "Anton"`,W-pad*2,md*.07,1,md*.06); lines(g,hf,pad,y,1,'left'); y+=hf.size+md*.03;
+    const avail=H-md*.06-pad-y;
+    const [ix,iy,iw,ih] = land ? [pad,y,W*.32,avail] : [W*.24,y,W*.52,avail*.36];
+    shot(g,img,ix,iy,iw,ih);
+    const tx = land ? W*.4 : pad, tw = land ? W*.6-pad : W-pad*2; let ty = land ? y : iy+ih+md*.02;
+    g.fillStyle='#111'; const f=fit(g,v.text.toUpperCase(),s2=>`400 ${s2}px "Anton"`,tw,(H-ty)*(land?.38:.3),1,md*.14); ty=lines(g,f,tx,ty,1,'left')+md*.02;
+    // price board
+    const pw=Math.min(tw, md*.62), ph=md*.17; g.fillStyle='#111'; rr(g,tx,ty,pw,ph,md*.02); g.fill(); g.strokeStyle=yel; g.lineWidth=md*.008; g.stroke();
+    g.fillStyle='#ff3b30'; g.font=`400 ${Math.round(ph*.32)}px "VT323"`; g.fillText('PER BAG', tx+md*.03, ty+md*.02);
+    g.fillStyle=yel; const pf=fit(g,'$0.00⁹',s2=>`400 ${s2}px "VT323"`,pw-md*.06,ph*.75,1,ph*.95); g.textAlign='right'; g.font=`400 ${pf.size}px "VT323"`; g.textBaseline='bottom'; g.fillText('$0.00⁹', tx+pw-md*.03, ty+ph-md*.005);
+    ty+=ph+md*.03; g.textAlign='left'; g.textBaseline='top'; g.fillStyle=red; const ff=fit(g,v.fine,s2=>SANS(700,s2),tw,Math.max(md*.05,H-md*.08-ty-md*.01),1.1,md*.055); lines(g,ff,tx,ty,1.1,'left');
+    g.fillStyle='#fff'; g.font=SANS(700,md*.026); g.textBaseline='middle'; g.fillText(v.brand+' · PUMP 4 · RESTROOM KEY AT COUNTER', pad, H-md*.03);
   };
 
   // Life-insurance policy: calm navy, an umbrella, and the catch in big type
@@ -490,11 +518,11 @@
     g.textAlign='right'; g.font=SANS(700,md*.026); g.fillText('POLICY No. '+serial(v)+'-L', W-pad, md*.08);
     let y=md*.21; g.textAlign='left'; g.textBaseline='top'; g.fillStyle=teal; g.font=SANS(700,md*.03); g.fillText('CERTIFICATE OF COVERAGE', pad, y); y+=md*.05;
     const tw=land?W*.6:W-pad*2; g.fillStyle=navy; const f=fit(g,v.text,s2=>`700 ${s2}px "Playfair Display"`,tw,H*(land?.22:.14),1.05,md*.1); y=lines(g,f,pad,y,1.05,'left')+md*.03;
-    if(land) shot(g,img,W*.7,md*.2,W*.25,H*.45); else shot(g,img,W*.62,md*.2,W*.3,H*.16);
+    if(land) shot(g,img,W*.7,md*.2,W*.25,H*.6); else { shot(g,img,W*.25,y,W*.5,H*.24); y+=H*.26; }
     // the catch: the joke gets the spotlight
-    const bh=H-y-pad-md*.07; g.fillStyle='#fff4d6'; rr(g,pad,y,W-pad*2,bh,md*.02); g.fill(); g.strokeStyle='#e9c46a'; g.lineWidth=3; g.stroke();
+    const bw=land?W*.66-pad:W-pad*2; let bh=H-y-pad-md*.07; if(!land){ g.font=SANS(700,10); const pf=fit(g,v.fine,s2=>SANS(700,s2),bw-md*.06,bh-md*.1,1.1,md*.11); bh=Math.min(bh, pf.lines.length*pf.size*1.1+md*.13); } g.fillStyle='#fff4d6'; rr(g,pad,y,bw,bh,md*.02); g.fill(); g.strokeStyle='#e9c46a'; g.lineWidth=3; g.stroke();
     g.fillStyle='#b5651d'; g.font=SANS(700,md*.028); g.fillText('⚠ TERMS OF COVERAGE', pad+md*.03, y+md*.03);
-    g.fillStyle='#1d1d1d'; const ff=fit(g,v.fine,s2=>SANS(700,s2),W-pad*2-md*.06,bh-md*.1,1.1,md*.11); lines(g,ff,pad+md*.03,y+md*.08,1.1,'left');
+    g.fillStyle='#1d1d1d'; const ff=fit(g,v.fine,s2=>SANS(700,s2),bw-md*.06,bh-md*.1,1.1,md*.11); lines(g,ff,pad+md*.03,y+md*.08,1.1,'left');
     g.fillStyle='#8a8f98'; g.font=SANS(400,md*.024); g.textBaseline='bottom'; g.fillText('Beneficiary: your manager · Premium: your weekend · Not valid on weekends', pad, H-pad*.6);
   };
 
