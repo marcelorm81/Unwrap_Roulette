@@ -1182,10 +1182,11 @@ window.addEventListener('pointermove', e=>{ if(e.pointerType!=='mouse') return; 
 // phones: tilt the device to look around the box
 let gyroBase=null;
 function onTilt(e){ if(e.gamma==null || e.beta==null) return; if(!gyroBase) gyroBase={ b:e.beta, g:e.gamma };
-  cam.tyaw=clamp((e.gamma-gyroBase.g)/30,-1,1)*0.42; cam.tpitch=clamp((e.beta-gyroBase.b)/30,-1,1)*0.22; }
+  cam.tyaw=clamp((e.gamma-gyroBase.g)/30,-1,1)*0.42; cam.tpitch=clamp((e.beta-gyroBase.b)/30,-1,1)*0.22;
+  inside.tx=Math.sin(clamp((e.gamma-gyroBase.g)*Math.PI/180,-1,1)); inside.ty=-Math.sin(clamp((e.beta-gyroBase.b)*Math.PI/180,-1,1)); }
 function enableGyro(){ try{ const D=window.DeviceOrientationEvent; if(!D) return;
-  if(typeof D.requestPermission==='function') D.requestPermission().then(r=>{ if(r==='granted') addEventListener('deviceorientation', onTilt); }).catch(()=>{});
-  else addEventListener('deviceorientation', onTilt); }catch(_){} }
+  if(typeof D.requestPermission==='function') D.requestPermission().then(r=>{ if(r==='granted'){ addEventListener('deviceorientation', onTilt); addEventListener('devicemotion', onMotion); } }).catch(()=>{});
+  else { addEventListener('deviceorientation', onTilt); addEventListener('devicemotion', onMotion); } }catch(_){} }
 document.addEventListener('pointerleave', ()=>{ cam.tyaw=0; cam.tpitch=0; });
 const endPtr = e=>{ ptr.active.delete(e.pointerId); if(ptr.active.size===0){ ptr.down=false; releaseGrab(); } };
 canvas.addEventListener('pointerup', endPtr); canvas.addEventListener('pointercancel', endPtr);
@@ -1230,26 +1231,58 @@ const Audio = {
   tone(t, amp, f0, f1, dur){ const c=this.ctx, o=c.createOscillator(), g=c.createGain(); o.frequency.setValueAtTime(f0,t); o.frequency.exponentialRampToValueAtTime(f1,t+dur);
     g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(amp,t+0.004); g.gain.exponentialRampToValueAtTime(0.001,t+dur); o.connect(g).connect(this.out); o.start(t); o.stop(t+dur+0.02); },
   // shaking the box: what's inside knocks against the walls, and it sounds like what it is
-  knock(kind, k){ if(!this.ctx||!this.on) return; const t=this.ctx.currentTime, R=Math.random; k=Math.min(1,k);
+  // something inside hits the box wall; pf gives each object its own voice, so a rattle is never quite the same twice
+  knock(kind, k, pf=1){ if(!this.ctx||!this.on) return; const t=this.ctx.currentTime, R=Math.random; k=Math.min(1,k); const j=pf*(0.92+R()*0.16);
     if(kind==='slosh'){ const c=this.ctx, s=c.createBufferSource(); s.buffer=this.noise; const f=c.createBiquadFilter(); f.type='bandpass'; f.Q.value=2.2;
-      f.frequency.setValueAtTime(320,t); f.frequency.exponentialRampToValueAtTime(900+R()*400,t+0.12); f.frequency.exponentialRampToValueAtTime(380,t+0.3);
-      const g=c.createGain(); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.5*k,t+0.05); g.gain.exponentialRampToValueAtTime(0.001,t+0.34); s.connect(f).connect(g).connect(this.out); s.start(t,R()*1.5,0.4);
-      this.tone(t+0.02,0.18*k,180+R()*40,120,0.12); }
-    else if(kind==='thud'){ this.tone(t,0.55*k,120+R()*30,60,0.16); this.hit(t,0.35*k,420,0.07,0.9); }
-    else if(kind==='rattle'){ for(let i=0,n=3+(R()*4|0);i<n;i++) this.hit(t+i*(0.008+R()*0.018), (0.3+R()*0.3)*k, 2400+R()*3200, 0.012+R()*0.02, 4); this.tone(t,0.14*k,260,180,0.05); }
-    else { this.hit(t,0.32*k,1100+R()*500,0.09,0.7); this.hit(t+0.03,0.16*k,2200,0.05,1.2); this.tone(t,0.12*k,200,140,0.06); }   // a card sliding and tapping the wall
+      f.frequency.setValueAtTime(300*j,t); f.frequency.exponentialRampToValueAtTime((800+R()*400)*j,t+0.1); f.frequency.exponentialRampToValueAtTime(360*j,t+0.28);
+      const g=c.createGain(); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.45*k,t+0.04); g.gain.exponentialRampToValueAtTime(0.001,t+0.32); s.connect(f).connect(g).connect(this.out); s.start(t,R()*1.5,0.38);
+      this.tone(t+0.015,0.14*k,170*j,110*j,0.1); }
+    else if(kind==='thud'){ this.tone(t,0.5*k,(110+R()*25)*j,55*j,0.15); this.hit(t,0.3*k,380*j,0.06,0.9); this.hit(t+0.012,0.12*k,1500*j,0.03,1.5); }
+    else if(kind==='rattle'){ const n=1+(k>0.5?1:0)+(R()<0.4?1:0); for(let i=0;i<n;i++) this.hit(t+i*(0.006+R()*0.012), (0.25+R()*0.25)*k, (2600+R()*1800)*j, 0.01+R()*0.018, 5); this.tone(t,0.1*k,300*j,200*j,0.04); }
+    else { this.hit(t,0.28*k,(1000+R()*400)*j,0.07,0.8); this.hit(t+0.02,0.12*k,2300*j,0.04,1.4); this.tone(t,0.1*k,210*j,150*j,0.05); }   // a card tapping the wall
   },
+  // a card or a bag sliding along the floor of the box
+  slideGain:null,
+  scrape(v){ if(!this.ctx||!this.on) return; if(!this.slideGain){ const c=this.ctx, s=c.createBufferSource(); s.buffer=this.noise; s.loop=true; const f=c.createBiquadFilter(); f.type='bandpass'; f.frequency.value=900; f.Q.value=0.9;
+      const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=2200; this.slideGain=c.createGain(); this.slideGain.gain.value=0; s.connect(f).connect(lp).connect(this.slideGain).connect(this.out); s.start(); }
+    this.slideGain.gain.setTargetAtTime(Math.min(0.12,v), this.ctx.currentTime, 0.05); },
   toggle(){ this.on=!this.on; if(this.out) this.out.gain.value=this.on?0.9:0; $('#snd').classList.toggle('on',!this.on); $('#snd').textContent=this.on?'♪':'×'; }
 };
 const INSIDE={ ice:'slosh', oliveoil:'slosh', lasagna:'slosh', plant:'thud', celeb:'thud', speech:'thud', therapy:'thud', advisor:'thud',
   usb:'rattle', lottery:'rattle', nft:'rattle', expired:'rattle', gta:'rattle', mobiledata:'rattle', cloud:'rattle', internet:'rattle', pigeon:'rattle' };
-// shake (mouse on desktop, tilt on phones): each time the motion reverses hard, the contents hit the box
-const shake={ py:0, pp:0, vx:0, vy:0, sp:0, last:0 };
-function shakeTick(dt){ if(dt<=0) return; const vx=(cam.yaw-shake.py)/dt, vy=(cam.pitch-shake.pp)/dt; shake.py=cam.yaw; shake.pp=cam.pitch;   // the eased camera, so speed is smooth
-  const now=performance.now()/1000, v=Math.hypot(vx,vy*1.6);
-  if(showcase.k===0 && !torn && !slide.on && !grab.on && vx*shake.vx+vy*shake.vy<0 && shake.sp>0.22 && now-shake.last>0.09){
-    shake.last=now; Audio.knock(INSIDE[present.id]||'card', 0.25+shake.sp*0.6); }
-  if(v>0.05){ shake.vx=vx; shake.vy=vy; } shake.sp=lerp(shake.sp, v, 0.5); }
+// What's inside: a few loose objects ride in the box. Move the mouse anywhere (no click needed), shake the phone or
+// tilt it, and the box accelerates; the objects lag behind, slide and bang into the walls. Each hit is voiced by how
+// hard it was and which object it was, so it rattles naturally and never repeats exactly.
+const KINDS={ rattle:{ n:4, r:0.16, e:0.55, fr:0.6 }, thud:{ n:1, r:0.42, e:0.25, fr:1.6 }, slosh:{ n:2, r:0.35, e:0.12, fr:2.4 }, card:{ n:1, r:0.5, e:0.18, fr:1.2 } };
+const inside={ id:null, kind:'card', obj:[], px:0, py:0, vx:0, vy:0, ax:0, ay:0, has:false, mx:0.5, my:0.5, tx:0, ty:0, dax:0, day:0 };
+addEventListener('pointermove', e=>{ if(e.pointerType==='mouse'){ inside.mx=e.clientX/innerWidth; inside.my=e.clientY/innerHeight; } });
+function onMotion(e){ const a=e.acceleration; if(a && a.x!=null){ inside.dax=a.x; inside.day=a.y; } }        // shaking the phone (m/s²)
+function insideTick(dt){
+  if(dt<=0) return; const live = showcase.k===0 && !torn && !slide.on && !grab.on;
+  if(inside.id!==present.id){ inside.id=present.id; inside.kind=INSIDE[present.id]||'card'; const K=KINDS[inside.kind];
+    inside.obj=[...Array(K.n)].map((_,i)=>({ x:(Math.random()-.5)*0.6, y:(Math.random()-.5)*0.6, vx:0, vy:0, pf:0.78+0.5*i/Math.max(1,K.n-1)+Math.random()*0.08, last:0 })); }
+  // box motion: the mouse position (screen units), smoothed; acceleration from its second difference
+  const px=inside.mx*2, py=inside.my*2; if(!inside.has){ inside.px=px; inside.py=py; inside.has=true; }
+  const vx=(px-inside.px)/dt, vy=(py-inside.py)/dt; inside.px=px; inside.py=py;
+  const svx=lerp(inside.vx,vx,0.3), svy=lerp(inside.vy,vy,0.3); let ax=(svx-inside.vx)/dt, ay=(svy-inside.vy)/dt; inside.vx=svx; inside.vy=svy;
+  ax=ax*1.25 + inside.dax*1.2; ay=ay*1.25 - inside.day*1.2; inside.dax*=0.5; inside.day*=0.5;
+  // tilt on phones: gravity pulls things toward the low side
+  ax += inside.tx*9; ay += inside.ty*9;
+  ax=clamp(ax,-160,160); ay=clamp(ay,-160,160);
+  const K=KINDS[inside.kind], now=performance.now()/1000, W=1-K.r; let slideV=0;
+  for(const o of inside.obj){
+    o.vx-=ax*dt; o.vy-=ay*dt;                                   // the box accelerates; the contents lag behind
+    const f=Math.exp(-K.fr*dt); o.vx*=f; o.vy*=f; o.x+=o.vx*dt; o.y+=o.vy*dt;
+    for(const ax_ of ['x','y']){ const vk='v'+ax_; if(Math.abs(o[ax_])>W){ const imp=Math.abs(o[vk]); o[ax_]=Math.sign(o[ax_])*W; o[vk]=-o[vk]*K.e;
+        if(live && imp>1.4 && now-o.last>0.045){ o.last=now; Audio.knock(inside.kind, (imp-1.4)/6, o.pf); } } }
+    slideV=Math.max(slideV, Math.hypot(o.vx,o.vy)); }
+  // objects knock each other a little (rattles)
+  if(inside.kind==='rattle') for(let i=0;i<inside.obj.length;i++) for(let j=i+1;j<inside.obj.length;j++){ const a=inside.obj[i], b=inside.obj[j], dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy), m=K.r*1.6;
+    if(d<m && d>1e-4){ const nx=dx/d, ny=dy/d, rv=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny; if(rv<0){ a.vx+=rv*nx; a.vy+=rv*ny; b.vx-=rv*nx; b.vy-=rv*ny;
+      if(live && -rv>1.7 && now-a.last>0.045){ a.last=now; Audio.knock('rattle', (-rv-1.7)/8, (a.pf+b.pf)*0.6); } }
+      const push=(m-d)/2; a.x-=nx*push; a.y-=ny*push; b.x+=nx*push; b.y+=ny*push; } }
+  if(inside.kind==='card' || inside.kind==='slosh') Audio.scrape(live ? Math.max(0, slideV-0.8)*0.03 : 0);
+}
 let lastHaptic=0; function haptic(){ const n=performance.now(); if(n-lastHaptic>70 && navigator.vibrate){ navigator.vibrate(6); lastHaptic=n; } }
 
 // ---------------------------------------------------------------- render
@@ -1333,7 +1366,7 @@ function frame(now){
   }
   sweep(dt);
   cam.yaw+=(cam.tyaw-cam.yaw)*Math.min(1,dt*3); cam.pitch+=(cam.tpitch-cam.pitch)*Math.min(1,dt*3);
-  shakeTick(dt);
+  insideTick(dt);
   if(showcase.k>0) updateShowcase(dt); else setView(cam.yaw,cam.pitch);
   updateSlide(dt);
   updateAwake();
