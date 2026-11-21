@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#E7B9A3" id="theme-color" />
   <title>Unwrap Roulette</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,7 +16,7 @@
     *{ box-sizing:border-box; }
     html,body{ height:100%; margin:0; overflow:hidden; background:var(--bg); transition:background .6s ease; }
     #stage{ position:fixed; inset:0; }
-    #gl{ width:100%; height:100%; display:block; touch-action:none; cursor:grab; }
+    #gl{ position:fixed; left:0; top:0; width:100vw; height:100vh; height:100lvh; display:block; touch-action:none; cursor:grab; }   /* full bleed: under Safari's glass bars too */
     #gl.grabbing{ cursor:grabbing; }
     
     /* Intro */
@@ -298,6 +299,8 @@ function lidCanvas(lidW, lidH, v, img){
   const rot = (mulberry32(v.id.length*977+v.text.length)()-.5)*0.09;
   g.save(); g.translate(W/2,H/2); g.rotate(rot);
   g.shadowColor='rgba(50,30,10,.45)'; g.shadowBlur=30; g.shadowOffsetY=10; g.drawImage(card,-cw/2,-ch/2,cw,ch); g.restore();
+  if(card.foil){ const m=document.createElement('canvas'); m.width=W; m.height=H; const mg=m.getContext('2d'); mg.fillStyle='#000'; mg.fillRect(0,0,W,H);
+    mg.save(); mg.translate(W/2,H/2); mg.rotate(rot); mg.drawImage(card.foil,-cw/2,-ch/2,cw,ch); mg.restore(); c.foilMask=m; }
   return c;
 }
 function wrapLines(g,text,maxW){ const words=text.split(/\s+/), out=[]; let cur=''; for(const w of words){ const t=cur?cur+' '+w:w; if(g.measureText(t).width<=maxW) cur=t; else { if(cur) out.push(cur); cur=w; } } if(cur) out.push(cur); return out; }
@@ -402,7 +405,7 @@ void main(){
 }`;
 
 const LID_FS = COMMON + `
-in vec3 vPos; in vec3 vNor; in vec2 vUV; uniform sampler2D uTex; uniform vec2 uLid;
+in vec3 vPos; in vec3 vNor; in vec2 vUV; uniform sampler2D uTex; uniform sampler2D uFoil; uniform vec2 uLid;
 void main(){
   vec3 base = texture(uTex, vUV).rgb; vec3 N=vec3(0,0,1);
   float sh = shadowAt(vPos, N);
@@ -410,6 +413,17 @@ void main(){
   float ao = mix(0.35,1.0,smoothstep(0.0,0.09,e));
   vec3 L=normalize(uLightDir);
   vec3 col = base*(keyCol()*0.92*max(dot(N,L),0.0)*mix(0.25,1.0,sh) + ambient(N))*ao;
+  // laminated card: a soft gloss everywhere, and holographic foil (seals, strips, gold) that shifts with the viewing angle
+  vec4 fm = texture(uFoil, vUV); float card = fm.g, foil = fm.r, gold = fm.b;
+  vec3 V = normalize(uEye - vPos), Hh = normalize(L + V);
+  float spec = pow(max(dot(N,Hh),0.0), 70.0) * mix(0.25,1.0,sh);
+  float t = vUV.x*2.6 + vUV.y*1.7 + V.x*3.0 + V.y*2.2;
+  vec3 rainbow = 0.5 + 0.5*cos(6.2832*(t + vec3(0.0,0.33,0.67)));
+  float fres = pow(1.0 - max(dot(N,V),0.0), 3.0);
+  col += card * (spec*0.35 + fres*0.06) * ao;
+  col = mix(col, col*0.55 + rainbow*0.55*(0.45 + spec*2.5 + fres), foil*0.9);
+  float lum = dot(base, vec3(0.3,0.59,0.11)); float metal = smoothstep(0.35,0.8,lum);   // only the gold itself shines, printed ink stays dark
+  col += gold * metal * (spec*0.9 + 0.1*pow(0.5+0.5*sin(t*3.1),6.0)) * vec3(1.0,0.86,0.5) * ao;
   outColor = vec4(toneMap(col),1.0);
 }`;
 
@@ -498,7 +512,8 @@ const ZC = 0.0018;            // cloth rest height above the lid
 let lidW=1, lidH=1.3, boxH=0.25;
 let VP, invVP, eye, lightVP;
 let cssW=1, cssH=1, dpr=1;
-let pattern = PATTERNS[0], patTex=null, lidTex=null;
+let pattern = PATTERNS[0], patTex=null, lidTex=null, foilTex=null;
+const blankMask=(()=>{ const c=document.createElement('canvas'); c.width=c.height=4; const g=c.getContext('2d'); g.fillStyle='#000'; g.fillRect(0,0,4,4); return c; })();
 let present = PRESENTS[0], giftToken = 0;
 let S = null;                  // cloth sim
 const mesh = {};               // GL buffers
@@ -947,7 +962,7 @@ function applyPattern(p){
     rs.setProperty('--gift-deep', `rgb(${d.join(',')})`); rs.setProperty('--gift-deep-ink', (0.2126*d[0]+0.7152*d[1]+0.0722*d[2])<140 ? '#fff' : '#000'); }
   pattern=p;
   patTex = texture(p.draw(), {repeat:true}, patTex);
-  document.documentElement.style.setProperty('--bg', p.bg);
+  document.documentElement.style.setProperty('--bg', p.bg); { const m=document.getElementById('theme-color'); if(m) m.setAttribute('content', p.bg); }
 }
 let gift=null, sharedGift=null, baseAspect=1;
 (function readShare(){
@@ -975,11 +990,11 @@ function newGift(sameGift){
   lidW=1; lidH=1/aspect; boxH=(0.13+0.22*R())*Math.min(lidW,lidH); cam.fill=0.7+0.3*R();
   present=PRESENTS.find(x=>x.id===gift.v)||PRESENTS[0];
   const pat=PATTERNS.find(x=>x.id===gift.p)||PATTERNS[0]; if(pat!==pattern || !patTex) applyPattern(pat);
-  lidTex = texture(lidCanvas(lidW,lidH,null,null), {repeat:false}, lidTex);
+  lidTex = texture(lidCanvas(lidW,lidH,null,null), {repeat:false}, lidTex); foilTex = texture(blankMask, {repeat:false}, foilTex);
   const v=present, token=++giftToken, lw=lidW, lh=lidH;
   Promise.all([loadPackshot(v.id), window.loadCardFonts ? loadCardFonts(v.tpl) : null]).then(([img])=>{
     if(token!==giftToken) return;
-    lidTex = texture(lidCanvas(lw,lh,v,img), {repeat:false}, lidTex);
+    const lc=lidCanvas(lw,lh,v,img); lidTex = texture(lc, {repeat:false}, lidTex); foilTex = texture(lc.foilMask||blankMask, {repeat:false}, foilTex);
   });
   buildStatic(); buildCloth(); fitCamera();
   torn=false; $('#next').classList.remove('show'); $('#send').classList.remove('pulse');
@@ -1062,7 +1077,14 @@ canvas.addEventListener('pointermove', e=>{
   if(!ptr.down) return;
   const [x,y]=localXY(e); ptr.px=ptr.x; ptr.py=ptr.y; ptr.x=x; ptr.y=y;
 });
-window.addEventListener('pointermove', e=>{ if(e.pointerType!=='mouse') return; cam.tyaw=(e.clientX/innerWidth-0.5)*0.22; cam.tpitch=(e.clientY/innerHeight-0.5)*0.12; });
+window.addEventListener('pointermove', e=>{ if(e.pointerType!=='mouse') return; cam.tyaw=(e.clientX/innerWidth-0.5)*0.75; cam.tpitch=(e.clientY/innerHeight-0.5)*0.36; });
+// phones: tilt the device to look around the box
+let gyroBase=null;
+function onTilt(e){ if(e.gamma==null || e.beta==null) return; if(!gyroBase) gyroBase={ b:e.beta, g:e.gamma };
+  cam.tyaw=clamp((e.gamma-gyroBase.g)/30,-1,1)*0.42; cam.tpitch=clamp((e.beta-gyroBase.b)/30,-1,1)*0.22; }
+function enableGyro(){ try{ const D=window.DeviceOrientationEvent; if(!D) return;
+  if(typeof D.requestPermission==='function') D.requestPermission().then(r=>{ if(r==='granted') addEventListener('deviceorientation', onTilt); }).catch(()=>{});
+  else addEventListener('deviceorientation', onTilt); }catch(_){} }
 document.addEventListener('pointerleave', ()=>{ cam.tyaw=0; cam.tpitch=0; });
 const endPtr = e=>{ ptr.active.delete(e.pointerId); if(ptr.active.size===0){ ptr.down=false; releaseGrab(); } };
 canvas.addEventListener('pointerup', endPtr); canvas.addEventListener('pointercancel', endPtr);
@@ -1127,6 +1149,7 @@ function render(){
 
   if(!hideMain){
   gl.useProgram(P.lid.p); bindCommon(P.lid); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,lidTex); gl.uniform1i(P.lid.u.uTex,0); gl.uniform2f(P.lid.u.uLid,lidW,lidH);
+  if(P.lid.u.uFoil){ gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D,foilTex||lidTex); gl.uniform1i(P.lid.u.uFoil,2); gl.activeTexture(gl.TEXTURE0); }
   gl.bindVertexArray(mesh.lid.vao); gl.drawArrays(gl.TRIANGLES,0,mesh.lid.count);
   gl.useProgram(P.walls.p); bindCommon(P.walls);
   gl.bindVertexArray(mesh.walls.vao); gl.drawArrays(gl.TRIANGLES,0,mesh.walls.count);
@@ -1320,7 +1343,7 @@ function updateShowcase(dt){
   setView(lerp(cam.yaw, 0, e), lerp(cam.pitch, 0.62, e), lerp(1, 1.15, e), (pile.frame*M + pile.camTop)*e);   // fixed front view: no sway, no mouse parallax
 }
 function introMainHidden(){ return showcase.k>0 && !drop.on && !(showcase.leaving && !pile.on); }
-$('#start-btn').onclick=()=>{ Audio.unlock(); intro.classList.remove('show'); intro.classList.add('hidden'); 
+$('#start-btn').onclick=()=>{ Audio.unlock(); enableGyro(); intro.classList.remove('show'); intro.classList.add('hidden'); 
   const sc=showcase; sc.spin=Math.atan2(Math.sin(sc.spin), Math.cos(sc.spin)); sc.p=0; sc.leaving=true;
   pile.ending=true; pile.popping=true; pile.pop=0;                            // the pile pops away...
   setTimeout(()=>{ drop.on=true; drop.t=0; drop.landed=false; }, 300);       // ...and your gift drops in
