@@ -957,9 +957,11 @@ let gift=null, sharedGift=null, baseAspect=1;
     sharedGift={ v, p: PATTERNS.some(x=>x.id===q.get('p')) ? q.get('p') : PATTERNS[0].id, s: (parseInt(q.get('s'),10)>>>0)||1, to:clean(q.get('to')), from:clean(q.get('from')) };
   }
 })();
-let deck=[];
+let deck=[], deckBuilt=false;
 function randomGift(){
-  if(!deck.length){ deck=PRESENTS.map(x=>x.id).sort(()=>Math.random()-.5); if(gift && deck[deck.length-1]===gift.v) deck.unshift(deck.pop()); }
+  if(!deck.length){ deck=PRESENTS.map(x=>x.id).filter(id=>!(gift && id===gift.v && !deckBuilt));
+    for(let i=deck.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [deck[i],deck[j]]=[deck[j],deck[i]]; }   // fresh order every visit
+    if(gift && deck[deck.length-1]===gift.v) deck.unshift(deck.pop()); deckBuilt=true; }
   let v=deck.pop(); if(gift && v===gift.v && deck.length) { deck.unshift(v); v=deck.pop(); }
   return { v, p: choosePattern().id, s: (Math.random()*4294967295)>>>0 };
 }
@@ -1269,9 +1271,10 @@ const drop={ on:false, t:0, base:0, landed:false };
 const pileTex={};
 function pileTexFor(p){ return pileTex[p.id] || (pileTex[p.id]=texture(p.draw(), {repeat:true})); }
 function pileModel(b, k){
-  const sc=b.sc*k, c=Math.cos(b.rz), sn=Math.sin(b.rz), z=-boxH+boxH*sc+b.base;
-  return new Float32Array([c*sc,sn*sc,0,0, -sn*sc,c*sc,0,0, 0,0,sc,0, b.x,b.y,z,1]);
+  const sx=b.sx*k, sy=b.sy*k, sz=b.sz*k, c=Math.cos(b.rz), sn=Math.sin(b.rz), z=-boxH+boxH*sz+b.base;
+  return new Float32Array([c*sx,sn*sx,0,0, -sn*sy,c*sy,0,0, 0,0,sz,0, b.x,b.y,z,1]);
 }
+const pileR=b=>Math.hypot(lidW*b.sx, lidH*b.sy)*0.5;
 function updatePile(dt){
   if(!pile.on) return;
   const M=Math.max(lidW,lidH);
@@ -1281,15 +1284,16 @@ function updatePile(dt){
   pile.spawn-=dt;
   if(pile.spawn<=0 && !pile.ending){ pile.spawn=0.42+Math.random()*0.18;
     const r=Math.sqrt(Math.random())*0.32*M, a=Math.random()*6.283;
-    pile.boxes.push({ x:Math.cos(a)*r, y:Math.sin(a)*r, base:pile.top+1.8*M, vz:0, rz:Math.random()*6.283, wz:(Math.random()-.5)*4, sc:0.42+Math.random()*0.32,
+    pile.boxes.push({ x:Math.cos(a)*r, y:Math.sin(a)*r, base:pile.top+1.8*M, vz:0, rz:Math.random()*6.283, wz:(Math.random()-.5)*4, ...(()=>{ const s=0.34+Math.random()*0.36, a=0.6+Math.random()*0.9;
+        return { sx:s*Math.sqrt(a), sy:s/Math.sqrt(a), sz:Math.min(4.5, s*(0.6+Math.random()*2.4)*(boxH>0.2?0.8:1.4)) }; })(),
       pat:PATTERNS[(Math.random()*PATTERNS.length)|0], landed:false }); }
   let top=0;
   for(const b of pile.boxes){
-    const h=boxH*b.sc, rb=Math.hypot(lidW,lidH)*0.5*b.sc;
+    const h=boxH*b.sz, rb=pileR(b);
     if(!b.landed){
       b.vz-=7.5*dt; b.base+=b.vz*dt; b.rz+=b.wz*dt;
-      let rest=0; for(const o of pile.boxes){ if(o===b || !o.landed) continue; const ro=Math.hypot(lidW,lidH)*0.5*o.sc;
-        if(Math.hypot(o.x-b.x,o.y-b.y) < (rb+ro)*0.62) rest=Math.max(rest, o.base+boxH*o.sc); }
+      let rest=0; for(const o of pile.boxes){ if(o===b || !o.landed) continue; const ro=pileR(o);
+        if(Math.hypot(o.x-b.x,o.y-b.y) < (rb+ro)*0.62) rest=Math.max(rest, o.base+boxH*o.sz); }
       if(b.base<=rest){ b.base=rest; if(b.vz<-1.1){ b.vz*=-0.22; b.wz*=0.4; } else { b.vz=0; b.landed=true; } }
     }
     if(b.landed) top=Math.max(top, b.base+h);

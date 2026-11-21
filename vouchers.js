@@ -39,7 +39,7 @@ window.VOUCHERS = [
   { id:'speech', text:'A motivational speech', brand:'Believe-ish Academy', tpl:'retro', fine:'"You could\'ve been worse." End of speech.', shot:'a cheap plastic megaphone' },
   { id:'apology', text:'One free apology', brand:'SorryNotSorry Inc.', tpl:'official', fine:'"I\'m sorry you feel that way." Valid once.', shot:'a wilted red rose in gas-station cellophane' },
   { id:'celeb', text:'A signed sub celebrity photo', brand:'Almost Famous™', tpl:'golden', fine:'Signed by the photographer.', shot:'a blurry signed polaroid photo' },
-  { id:'aigf', text:'A premium AI girlfriend', brand:'LoveGPT 0.5', tpl:'giftcard', fine:'Currently in a relationship with 74 other users.', shot:'a pink toy robot with heart eyes' },
+  { id:'aigf', text:'A premium AI love partner', brand:'LoveGPT 0.5', tpl:'giftcard', fine:'Currently in a relationship with 74 other users.', shot:'a pink toy robot with heart eyes' },
   { id:'nft', text:'A limited-edition NFT', brand:'Blockchain & Regret', tpl:'ticket', fine:'Screenshot included. Ownership unclear.', shot:'a framed pixel art monkey print' },
   { id:'imaginary', text:'A certified imaginary friend', brand:'Invisible People Inc.', tpl:'dorky', fine:'Has already ghosted you.', shot:'an empty child-size chair with a party hat' },
   { id:'pigeon', text:'Ownership of a random pigeon', brand:'Pigeon Capital', tpl:'raffle', fine:'Pigeon has not been informed.', shot:'a grey city pigeon' },
