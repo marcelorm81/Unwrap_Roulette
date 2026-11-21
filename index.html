@@ -1380,7 +1380,7 @@ $('#sheet-form').addEventListener('submit', async e=>{
   const url=giftLink(to, from);
   const text=`${to?to+', ':''}${from||'Someone'} sent you a gift. Unwrap it (it's probably terrible):`;
   try{
-    if(navigator.share && matchMedia('(pointer:coarse)').matches){ await navigator.share({ title:'Unwrap Roulette', text, url }); closeSheet(); return; }
+    if(navigator.share && matchMedia('(pointer:coarse)').matches){ await navigator.share({ title:'Unwrap Roulette', text:`${text} ${url}` }); closeSheet(); return; }   // link inside the text: iOS Copy drops a separate url
     await navigator.clipboard.writeText(`${text} ${url}`); $('#sheet-done').textContent='Message and link copied! Paste it to them.';   // the note and the link travel together
   }catch(_){ $('#sheet-done').textContent=`${text} ${url}`; }
 });
