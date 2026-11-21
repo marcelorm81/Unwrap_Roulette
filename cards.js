@@ -196,16 +196,16 @@
     const f=fit(g, v.text, s=>`600 ${s}px "IBM Plex Mono"`, tw, th*.38, 1.05, th*.16); g.fillStyle='#111'; lines(g,f,tx,ty+th*.09,1.05,'left');
     label('2. REFERENCE No.', ty+th*.56, th*.16); g.fillStyle='#111'; g.font=`600 ${Math.round(fs*.9)}px "IBM Plex Mono"`; g.fillText(serial(v)+'-'+(hashStr(v.text)%99), tx, ty+th*.63);
     g.fillStyle='#5a6c80'; const ff=fit(g,'NOTE: '+v.fine,s=>`600 ${s}px "IBM Plex Mono"`, tw, th*.16, 1.15, fs*.6); lines(g,ff,tx,ty+th*.8,1.15,'left');
-    g.save(); g.translate(tx+tw*.7, ty+th*.38); g.rotate(-.28); g.globalAlpha=.78; g.strokeStyle='#C62828'; g.fillStyle='#C62828'; g.lineWidth=fs*.18;
-    const sw=Math.min(tw*.55, fs*9), sh2=fs*2.2; rr(g,-sw/2,-sh2/2,sw,sh2,fs*.3); g.stroke(); g.textAlign='center'; g.textBaseline='middle';
+    g.save(); g.translate(tx+tw*.74, ty+th*.68); g.rotate(-.2); g.globalAlpha=.78; g.strokeStyle='#C62828'; g.fillStyle='#C62828'; g.lineWidth=fs*.18;
+    const sw=Math.min(tw*.44, fs*7), sh2=fs*1.8; rr(g,-sw/2,-sh2/2,sw,sh2,fs*.3); g.stroke(); g.textAlign='center'; g.textBaseline='middle';
     const st=fit(g,'APPROVED-ISH',s=>`400 ${s}px "Anton"`, sw*.85, sh2*.8, 1, fs*1.4); g.font=`400 ${st.size}px "Anton"`; g.fillText('APPROVED-ISH', 0, 0); g.restore();
   };
 
   T.retro = (g,W,H,v,img)=>{
     rr(g,0,0,W,H,Math.min(W,H)*.06); g.fillStyle='#FFF1D6'; g.fill(); g.save(); g.clip();
     const cols=['#F4A259','#E76F51','#BC4B51','#5B3A29']; const md=Math.min(W,H), sw=md*.045;
-    cols.forEach((c,i)=>{ g.fillStyle=c; g.beginPath(); g.arc(W*1.02, H*1.05, md*(.62-i*.09), 0, 7); g.fill(); });
-    g.fillStyle='#FFF1D6'; g.beginPath(); g.arc(W*1.02,H*1.05,md*.26,0,7); g.fill();
+    cols.forEach((c,i)=>{ g.fillStyle=c; g.beginPath(); g.arc(W*1.04, H*1.08, md*(.44-i*.065), 0, 7); g.fill(); });
+    g.fillStyle='#FFF1D6'; g.beginPath(); g.arc(W*1.04,H*1.08,md*.18,0,7); g.fill();
     cols.forEach((c,i)=>{ g.fillStyle=c; g.fillRect(0, i*sw, W, sw*.8); });
     g.restore();
     const top=sw*4.4; const L=split(W,H-top,md*.08,.4); const [ix,iy,iw,ih]=L.img; shot(g,img,ix,iy+top,iw,ih);

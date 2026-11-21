@@ -46,4 +46,5 @@ window.VOUCHERS = [
   { id:'conspiracy', text:'A personalized conspiracy theory', brand:'DeepState Starter Kit', tpl:'receipt', fine:'Three ducks have been following you since March.', shot:'a tinfoil hat' },
   { id:'identity', text:'One free identity crisis', brand:'WhoAmI Corporation', tpl:'coupon', fine:'Your new name is Kevin. Everyone agrees.', shot:'a HELLO my name is KEVIN sticker' },
   { id:'potato', text:'An emotional support potato', brand:'SpudBuddy™', tpl:'dorky', fine:'Has no qualifications. Will eventually sprout.', shot:'a potato with googly eyes and a sprout' },
+  { id:'influencer', text:'A follow from a micro-influencer', brand:'Clout Crumbs Agency', tpl:'giftcard', fine:'1,203 followers. Will DM you a teeth-whitening discount code within the hour.', shot:'a cheap selfie ring light on a mini tripod' },
 ];
