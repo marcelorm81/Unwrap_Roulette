@@ -412,7 +412,8 @@
     rr(g,0,0,W,H,md*.03); g.fillStyle='#fbf7ef'; g.fill(); g.save(); g.clip(); g.fillStyle=red; g.fillRect(0,0,W,H*.22); g.restore();
     g.fillStyle='#555'; for(const fx of [.3,.7]){ g.beginPath(); g.arc(W*fx,H*.05,md*.025,0,7); g.fill(); }
     g.fillStyle='#fff'; g.textAlign='center'; g.textBaseline='middle'; const mf=fit(g,(v.month||'FEBRUARY'),s2=>`400 ${s2}px "Anton"`,W*.8,H*.12,1,md*.13); g.font=`400 ${mf.size}px "Anton"`; g.fillText(v.month||'FEBRUARY', W/2, H*.13);
-    { const d=v.day||'30', top=H*.27, bot=land?H-pad*1.4:H*.6, maxW=land?W*.42:W*.7; let sz=md*1.2, m;
+    { const d=v.day||'30', top=H*.22+md*.06, bot=land?H-pad*1.4:H*.6, maxW=land?W*.42:W*.7; let sz=md*1.2, m;
+      g.textAlign='center'; g.textBaseline='alphabetic';   // measure with the same baseline it's drawn with, so it sits on the white, clear of the red band
       for(;sz>20;sz*=.94){ g.font=`400 ${Math.round(sz)}px "Anton"`; m=g.measureText(d); if(m.actualBoundingBoxAscent+m.actualBoundingBoxDescent<=bot-top && m.width<=maxW) break; }
       g.fillStyle='#1a1a1a'; g.textAlign='center'; g.textBaseline='alphabetic'; g.fillText(d, land?W*.27:W/2, top+m.actualBoundingBoxAscent); }
     if(land){ g.fillStyle='#1a1a1a'; g.textAlign='left'; const tx=W*.52, tw=W*.43; const f=fit(g,v.text,s2=>SANS(700,s2),tw,H*.3,1.05,md*.1); let y=lines(g,f,tx,H*.3,1.05,'left')+md*.03; g.fillStyle=red; const ff=fit(g,v.fine,s2=>SANS(700,s2),tw,H*.16,1.1,md*.05); y=lines(g,ff,tx,y,1.1,'left'); shot(g,img,tx,y+md*.02,tw*.4,H-pad-y-md*.02); }
