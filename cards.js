@@ -415,9 +415,11 @@
     { const d=v.day||'30', top=H*.22+md*.06, bot=land?H-pad*1.4:H*.6, maxW=land?W*.42:W*.7; let sz=md*1.2, m;
       g.textAlign='center'; g.textBaseline='alphabetic';   // measure with the same baseline it's drawn with, so it sits on the white, clear of the red band
       for(;sz>20;sz*=.94){ g.font=`400 ${Math.round(sz)}px "Anton"`; m=g.measureText(d); if(m.actualBoundingBoxAscent+m.actualBoundingBoxDescent<=bot-top && m.width<=maxW) break; }
-      g.fillStyle='#1a1a1a'; g.textAlign='center'; g.textBaseline='alphabetic'; g.fillText(d, land?W*.27:W/2, top+m.actualBoundingBoxAscent); }
+      // tall cards: the 30 sits low, right on top of the title; wide cards: centred in the white area
+      const nh=m.actualBoundingBoxAscent+m.actualBoundingBoxDescent, base = land ? (top+bot)/2 + nh/2 - m.actualBoundingBoxDescent : bot - m.actualBoundingBoxDescent;
+      g.fillStyle='#1a1a1a'; g.fillText(d, land?W*.27:W/2, base); }
     if(land){ g.fillStyle='#1a1a1a'; g.textAlign='left'; const tx=W*.52, tw=W*.43; const f=fit(g,v.text,s2=>SANS(700,s2),tw,H*.3,1.05,md*.1); let y=lines(g,f,tx,H*.3,1.05,'left')+md*.03; g.fillStyle=red; const ff=fit(g,v.fine,s2=>SANS(700,s2),tw,H*.16,1.1,md*.05); y=lines(g,ff,tx,y,1.1,'left'); shot(g,img,tx,y+md*.02,tw*.4,H-pad-y-md*.02); }
-    else { g.fillStyle='#1a1a1a'; const f=fit(g,v.text,s2=>SANS(700,s2),W-pad*2,H*.14,1.05,md*.1); let y=lines(g,f,W/2,H*.64,1.05)+md*.02; g.fillStyle=red; const ff=fit(g,v.fine,s2=>SANS(700,s2),W-pad*2,H*.08,1.1,md*.05); y=lines(g,ff,W/2,y,1.1); shot(g,img,W*.38,y+md*.02,W*.24,H-pad-y-md*.02); }
+    else { g.fillStyle='#1a1a1a'; const f=fit(g,v.text,s2=>SANS(700,s2),W-pad*2,H*.14,1.05,md*.1); let y=lines(g,f,W/2,H*.6+md*.035,1.05)+md*.02; g.fillStyle=red; const ff=fit(g,v.fine,s2=>SANS(700,s2),W-pad*2,H*.08,1.1,md*.05); y=lines(g,ff,W/2,y,1.1); shot(g,img,W*.38,y+md*.02,W*.24,H-pad-y-md*.02); }
     g.fillStyle='#999'; g.font=SANS(700,md*.026); g.textAlign='left'; g.textBaseline='bottom'; g.fillText(v.brand, pad, H-pad*.5);
   };
 
