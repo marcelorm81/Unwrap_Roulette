@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#E7B9A3" id="theme-color" />
   <title>Unwrap Roulette</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,7 +13,7 @@
   <script src="cards.js"></script>
   <style>
     :root{ --cover:#F03B2C; --bg:#2D4A3E; }
-    *{ box-sizing:border-box; }
+    *{ box-sizing:border-box; touch-action:manipulation; }   /* no double-tap zoom on iPhone (taps stay instant) */
     html,body{ height:100%; margin:0; overflow:hidden; background:var(--bg); }
     #stage{ position:fixed; inset:0; }
     #gl{ position:fixed; left:0; top:0; width:100vw; height:100vh; height:100lvh; display:block; touch-action:none; cursor:grab; }   /* full bleed: under Safari's glass bars too */
@@ -173,6 +173,8 @@ if(!gl){
   $('#stage').insertAdjacentHTML('beforeend','<div class="nogl">This needs WebGL2.<br>Try a recent Chrome, Safari or Firefox.</div>');
   throw new Error('WebGL2 unavailable');
 }
+// iPhone: no double-tap or pinch zoom anywhere (fast Shake taps and rips kept zooming the page)
+for(const ev of ['gesturestart','gesturechange','dblclick']) document.addEventListener(ev, e=>e.preventDefault(), { passive:false });
 const ANISO = gl.getExtension('EXT_texture_filter_anisotropic');
 gl.vertexAttrib1f(3, 1.0);   // static meshes are fully intact
 
